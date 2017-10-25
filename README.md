@@ -15,3 +15,9 @@ This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
+
+## Irideon License
+
+Copyright (c) 2014-2017, Irideon SL. All rights reserved.
+
+All code provided by Irideon is under Irideon's End-User License Agreement.
