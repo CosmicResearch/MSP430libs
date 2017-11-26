@@ -19,29 +19,63 @@
 #ifndef BONDAR_GPS
 #define BONDAR_GPS
 
-#include <Senscape.h>
-#include <Serial.h>
+#include "Senscape.h"
+#include "Serial.h"
+#include <string.h>
 
 struct gps_data_t : sensor_data_t {
     float speed, angle, magvariation, HDOP;    
     uint8_t hour, minute, seconds;
-    int32_t latitude, longitude; //Stored in units of 1/100000 degrees
+    int32_t latitude, longitude; //Stored in units of 1/1000000 degrees
+    char latitudeChar, longitudeChar;
+    int32_t altitude; //Stored in units of 1/100 meters
     bool fix;
     uint8_t fixQuality, satellites;
+};
+
+typedef enum {
+    S_IDLE,
+    S_START,
+    S_STOP,
+    S_READ,
+    S_READ_NOW,
+    S_WAKE_UP,
+} gps_request_t;
+
+struct gps_state_t {
+    gps_request_t request;
+    boolean_t isStarted;
+    boolean_t isReady;
 };
 
 class GPS : SensorClient {
 
 private:
 
-    bool paused;
-    gps_data_t lastData;
-    uint8_t parseResponse(char* response);
-    Serial *serial;
+    static gps_data_t *lastData;
+    static Serial *serial;
+    static gps_state_t state;
+    static uint32_t baudRate;
+
+    static void ((*onStartDone)(error_t));
+    static void ((*onStopDone)(error_t));
+    static void ((*onReadDone)(sensor_data_t *, error_t));
+
+    static bool processLine(char* line, gps_data_t *data);
+    static bool processGGALine(char* GGALine, gps_data_t *data);
+
+    static uint8_t charHexToInt(char c);
+    static uint8_t charIntToInt(char c);
+    static uint16_t stringToInt(char* &c);
+    static float_t stringToFloat(char* &c);
+    static uint32_t stringToDegreesIn1000000ths(char* &c);
+    static uint32_t stringToFloatIn100ths(char* &c);
+
+    static void sendCommand(char* command);
 
 public:
 
-    GPS(Serial *serial, Resource *resource);
+    GPS(Serial *serial, uint32_t baudRate);
 
     virtual error_t start(void);
     virtual error_t stop(void);
@@ -53,8 +87,11 @@ public:
     virtual void attachStopDone(void (*)(error_t));
     virtual void attachReadDone(void (*)(sensor_data_t *data, error_t));
 
-    gps_data_t getLastData();
+    static void onSerialSendDone(void);
+    static void onSerialReceive(uint8_t data);
 
-}
+    static gps_data_t getLastData(void);
+
+};
 
 #endif
