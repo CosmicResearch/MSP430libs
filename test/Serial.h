@@ -26,6 +26,7 @@ class Serial {
 private:
     
     void ((*_onReceive)(error_t));
+    void ((*_onSendDone)(void));
 
 public:
 
@@ -35,8 +36,28 @@ public:
         std::cout << word << std::endl;
     }
     
+    void begin(uint32_t baudRate) {
+        
+    }
+    
     void attachReceive(void (* func )(uint8_t)) {
         _onReceive = func;
+    }
+    
+    void end() {
+        
+    }
+    
+    void detachSendDone() {
+        _onSendDone = NULL;
+    }
+    
+    void detachReceive() {
+        _onReceive = NULL;
+    }
+    
+    void attachSendDone(void (* func )(void)) {
+        _onSendDone = func;
     }
 
 
