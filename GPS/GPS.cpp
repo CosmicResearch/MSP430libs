@@ -17,63 +17,53 @@
 */
 
 #include "GPS.h"
-#include <iostream>
 
 #define MAXLENGTH 120
 
-volatile char lineBuffer1[MAXLENGTH];
-volatile char lineBuffer2[MAXLENGTH];
-
-volatile uint8_t lineIndex = 0;
-volatile char* currentLine;
-volatile char* lastLine;
+char lineBuffer1[MAXLENGTH];
+char lineBuffer2[MAXLENGTH];
 
 /*
 PUBLIC METHODS
 */
 
 GPS::GPS(Serial* serial, const uint32_t baudRate) {
-    GPS::serial = serial;
-    GPS::baudRate = baudRate;
-    GPS::state = {S_IDLE, false, false};
+    GPS::state = {S_IDLE, false, false, lineBuffer1, lineBuffer2, 0};
     GPS::lastData = new gps_data_t;
-    currentLine = lineBuffer1;
     GPS::onReadDone = NULL;
     GPS::onStartDone = NULL;
     GPS::onStopDone = NULL;
 }
 
 error_t GPS::start() {
-    serial->attachReceive(onSerialReceive);
-    state.isStarted = true;
-    return SUCCESS;
+    if (!state.isStarted) {
+        serial->begin(baudRate);
+        serial->attachReceive(onSerialReceive);
+        serial->attachSendDone(onSerialSendDone);
+        state.isStarted = true;
+        return SUCCESS;
+    }
+    return ERROR;
 }
 
 error_t GPS::stop() {
-    serial->attachReceive(NULL);
-    return SUCCESS;
+    if (state.isStarted) {
+        serial->detachSendDone();
+        serial->detachReceive();
+        serial->end();
+        if (onStopDone) {
+            onStopDone(SUCCESS);
+        }
+        return SUCCESS;
+    }
+    return ERROR;
 }
 
 error_t GPS::read() {
-    /*if (state.isStarted) {
-        if (state.request == S_IDLE) {
-            state.request = S_READ;
-            return resource->request();
-        }
-        return EBUSY;
-    }*/
     return ERROR;
 }
 
 error_t GPS::readNow() {
-    /*if (state.isStarted) {
-        if (state.request == S_IDLE) {
-            state.request = S_READ_NOW;
-            state.isReady = false;
-            return resource->immediateRequest();
-        }
-        return EBUSY;
-    }*/
     return ERROR;
 }
 
@@ -88,34 +78,25 @@ CALLBACKS
 void GPS::onSerialSendDone() {}
 
 void GPS::onSerialReceive(uint8_t data) {
-    if (data == '\n') {
-        currentLine[lineIndex] = 0;
-        if (currentLine == lineBuffer1) {
-            currentLine = lineBuffer2;
-            lastLine = lineBuffer1;
+    if (data == '$') {
+        state.lineIndex = 0;
+    }
+    if ((data == '\n' || data == '\r') && state.lineIndex > 0 ) {
+        state.currentLine[state.lineIndex] = 0;
+        if (state.currentLine == lineBuffer1) {
+            state.currentLine = lineBuffer2;
+            state.lastLine = lineBuffer1;
         }
         else {
-            currentLine = lineBuffer1;
-            lastLine = lineBuffer2;
+            state.currentLine = lineBuffer1;
+            state.lastLine = lineBuffer2;
         }
-        lineIndex = 0;
-        gps_data_t* gps_data = new gps_data_t;
-        bool correct = processLine((char*)lastLine, gps_data);
-        if (!correct) {
-            if (onReadDone)
-                onReadDone(NULL, ERROR);
-            return;
-        }
-        else  {
-            lastData = gps_data;
-            if (onReadDone != NULL)
-                onReadDone(gps_data, SUCCESS);
-        }
-        return;
+        state.lineIndex = 0;
+        postTask(onSignalDoneTask, SUCCESS);
     }
-    currentLine[lineIndex++] = data;
-    if (lineIndex >= MAXLENGTH) {
-        lineIndex = MAXLENGTH - 1;
+    state.currentLine[state.lineIndex++] = data;
+    if (state.lineIndex >= MAXLENGTH) {
+        state.lineIndex = MAXLENGTH - 1;
     }
 }
 
@@ -143,7 +124,7 @@ gps_data_t GPS::getLastData() {
 PRIVATE METHODS
 */
 
-void GPS::sendCommand(char* command) {
+void GPS::sendNMEACommand(char* command) {
     serial->println(command);
 }
 
@@ -233,13 +214,17 @@ uint8_t GPS::charIntToInt(char c) {
  * Returns if the line is correct and saves the parsed data to 'data'
  */
 bool GPS::processLine(char* line, gps_data_t* data) {
-    int size = strlen(line);
+    unsigned long size = strlen(line);
     if(line[0] != '$') { //NMEA 0183 messages start with '$'
         return false;
     }
     if(line[size-3] != '*') {
         return false;
-    } 
+    }
+    /*
+     Let's process the checksum
+     Checksum = XOR of all characters between '$' and '*'
+     */
     uint8_t checksum = charHexToInt(line[size-2])*16 + charHexToInt(line[size-1]);
     uint8_t parity = 0;
     char messageType[4];
@@ -257,7 +242,7 @@ bool GPS::processLine(char* line, gps_data_t* data) {
         return processGGALine(line, data);
     }
     if (strcmp(messageType, "RMC") == 0) {
-        
+        return processRMCLine(line, data);
     }
     return false;
 }
@@ -279,4 +264,37 @@ bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
     return true;
 }
 
+bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
+    RMCLine += 7;
+    data->hour = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
+    data->minute = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
+    data->seconds = uint8_t(stringToFloat(RMCLine)); RMCLine++;
+    data->fix = (*RMCLine=='A')?true:false; RMCLine++;
+    data->latitude = stringToDegreesIn1000000ths(RMCLine); RMCLine++;
+    data->latitudeChar = *RMCLine++; RMCLine++;
+    data->longitude = stringToDegreesIn1000000ths(RMCLine); RMCLine++;
+    data->longitudeChar = *RMCLine++; RMCLine++;
+    data->speed = stringToFloat(RMCLine); RMCLine++;
+    data->angle = stringToFloat(RMCLine); RMCLine++;
+    data->day = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
+    data->month = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
+    data->year = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++); RMCLine++;
+    data->magvariation = stringToFloat(RMCLine); RMCLine++;
+    return true;
+}
 
+void GPS::onSignalDoneTask(void* param) {
+    gps_data_t* gps_data = new gps_data_t;
+    bool correct = processLine((char*)state.lastLine, gps_data);
+    if (!correct) {
+        if (onReadDone)
+            onReadDone(NULL, ERROR);
+        return;
+    }
+    else  {
+        lastData = gps_data;
+        if (onReadDone != NULL)
+            onReadDone(gps_data, SUCCESS);
+    }
+    return;
+}

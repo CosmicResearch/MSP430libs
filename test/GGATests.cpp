@@ -24,7 +24,8 @@
 
 int main() {
     char const* string = "$GPGGA,092725.00,4717.11399,N,00833.91590,E,1,08,1.01,499.6,M,48.0,M,,*5B\n";
-    GPS gps(new Serial(), 9600);
+    Serial* serial = new Serial();
+    GPS gps (serial, 9600);
     for (int i = 0; i < strlen(string); ++i) {
         gps.onSerialReceive(string[i]);
     }

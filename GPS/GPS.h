@@ -26,6 +26,8 @@
 struct gps_data_t : sensor_data_t {
     float speed, angle, magvariation, HDOP;    
     uint8_t hour, minute, seconds;
+    uint8_t day, month;
+    uint16_t year;
     int32_t latitude, longitude; //Stored in units of 1/1000000 degrees
     char latitudeChar, longitudeChar;
     int32_t altitude; //Stored in units of 1/100 meters
@@ -46,6 +48,9 @@ struct gps_state_t {
     gps_request_t request;
     boolean_t isStarted;
     boolean_t isReady;
+    char* currentLine;
+    char* lastLine;
+    int lineIndex;
 };
 
 class GPS : SensorClient {
@@ -63,6 +68,7 @@ private:
 
     static bool processLine(char* line, gps_data_t *data);
     static bool processGGALine(char* GGALine, gps_data_t *data);
+    static bool processRMCLine(char* RMCLine, gps_data_t *data);
 
     static uint8_t charHexToInt(char c);
     static uint8_t charIntToInt(char c);
@@ -70,8 +76,10 @@ private:
     static float_t stringToFloat(char* &c);
     static uint32_t stringToDegreesIn1000000ths(char* &c);
     static uint32_t stringToFloatIn100ths(char* &c);
+    
+    static void onSignalDoneTask(void* param);
 
-    static void sendCommand(char* command);
+    static void sendNMEACommand(char* command);
 
 public:
 
