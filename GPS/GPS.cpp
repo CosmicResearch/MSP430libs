@@ -20,6 +20,15 @@
 
 #define MAXLENGTH 120
 
+struct gps_state_t {
+    gps_request_t request;
+    boolean_t isStarted;
+    boolean_t isReady;
+    char* currentLine;
+    char* lastLine;
+    int lineIndex;
+};
+
 char lineBuffer1[MAXLENGTH];
 char lineBuffer2[MAXLENGTH];
 
@@ -28,11 +37,12 @@ PUBLIC METHODS
 */
 
 GPS::GPS(Serial* serial, const uint32_t baudRate) {
-    GPS::state = {S_IDLE, false, false, lineBuffer1, lineBuffer2, 0};
+    this->state = {S_IDLE, false, false, lineBuffer1, lineBuffer2, 0};
     GPS::lastData = new gps_data_t;
     GPS::onReadDone = NULL;
     GPS::onStartDone = NULL;
     GPS::onStopDone = NULL;
+    this->baudRate = baudRate;
 }
 
 error_t GPS::start() {

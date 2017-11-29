@@ -24,7 +24,7 @@
 #include <string.h>
 
 struct gps_data_t : sensor_data_t {
-    float speed, angle, magvariation, HDOP;    
+    float speed, angle, magvariation, HDOP;
     uint8_t hour, minute, seconds;
     uint8_t day, month;
     uint16_t year;
@@ -44,23 +44,16 @@ typedef enum {
     S_WAKE_UP,
 } gps_request_t;
 
-struct gps_state_t {
-    gps_request_t request;
-    boolean_t isStarted;
-    boolean_t isReady;
-    char* currentLine;
-    char* lastLine;
-    int lineIndex;
-};
+struct gps_state_t;
 
 class GPS : SensorClient {
 
 private:
 
     static gps_data_t *lastData;
-    static Serial *serial;
+    Serial *serial;
     static gps_state_t state;
-    static uint32_t baudRate;
+    uint32_t baudRate;
 
     static void ((*onStartDone)(error_t));
     static void ((*onStopDone)(error_t));
@@ -79,7 +72,7 @@ private:
     
     static void onSignalDoneTask(void* param);
 
-    static void sendNMEACommand(char* command);
+    void sendNMEACommand(char* command);
 
 public:
 
