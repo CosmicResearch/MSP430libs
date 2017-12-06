@@ -23,9 +23,9 @@
 char lineBuffer1[MAXLENGTH];
 char lineBuffer2[MAXLENGTH];
 
-gps_state_t GPS::tate = {S_IDLE, false, false, lineBuffer1, lineBuffer2, 0};
+gps_state_t GPS::state = {S_IDLE, false, false, lineBuffer1, lineBuffer2, 0};
 gps_data_t GPS::lastData;
-void ((*GPS::onReadDone)(gps_data_t, error_t)) = NULL;
+void ((*GPS::onReadDone)(sensor_data_t*, error_t)) = NULL;
 void ((*GPS::onStartDone)(error_t)) = NULL;
 void ((*GPS::onStopDone)(error_t)) = NULL;
 
@@ -282,7 +282,7 @@ bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
     data->hour = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
     data->minute = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
     data->seconds = uint8_t(stringToFloat(RMCLine)); RMCLine++;
-    data->fix = (*RMCLine=='A')?true:false; RMCLine++;
+    data->fix = (*RMCLine=='A')?true:false; RMCLine++; RMCLine++;
     data->latitude = stringToDegreesIn1000000ths(RMCLine); RMCLine++;
     data->latitudeChar = *RMCLine++; RMCLine++;
     data->longitude = stringToDegreesIn1000000ths(RMCLine); RMCLine++;
@@ -293,6 +293,7 @@ bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
     data->month = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
     data->year = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++); RMCLine++;
     data->magvariation = stringToFloat(RMCLine); RMCLine++;
+    data->altitude = -1;
     return true;
 }
 

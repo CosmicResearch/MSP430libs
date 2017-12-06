@@ -16,8 +16,8 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SENSCAPE
-#define SENSCAPE
+#ifndef SENSCAPE_H_
+#define SENSCAPE_H_
 
 #include <ctype.h>
 
@@ -30,18 +30,7 @@ typedef unsigned char error_t;
 typedef float float_t;
 typedef unsigned char error_t;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-    
-    error_t postTask(void (*function)(void*), void *param) {
-        function(param);
-        return SUCCESS;
-    }
-    
-#ifdef __cplusplus
-}
-#endif
+error_t postTask(void (*function)(void*), void *param);
 
 #include "SensorClient.h"
 
