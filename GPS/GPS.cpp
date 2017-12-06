@@ -20,51 +20,54 @@
 
 #define MAXLENGTH 120
 
-struct gps_state_t {
-    gps_request_t request;
-    boolean_t isStarted;
-    boolean_t isReady;
-    char* currentLine;
-    char* lastLine;
-    int lineIndex;
-};
-
 char lineBuffer1[MAXLENGTH];
 char lineBuffer2[MAXLENGTH];
+
+gps_state_t GPS::tate = {S_IDLE, false, false, lineBuffer1, lineBuffer2, 0};
+gps_data_t GPS::lastData;
+void ((*GPS::onReadDone)(gps_data_t, error_t)) = NULL;
+void ((*GPS::onStartDone)(error_t)) = NULL;
+void ((*GPS::onStopDone)(error_t)) = NULL;
 
 /*
 PUBLIC METHODS
 */
 
 GPS::GPS(Serial* serial, const uint32_t baudRate) {
-    this->state = {S_IDLE, false, false, lineBuffer1, lineBuffer2, 0};
-    GPS::lastData = new gps_data_t;
-    GPS::onReadDone = NULL;
-    GPS::onStartDone = NULL;
-    GPS::onStopDone = NULL;
+    this->serial = serial;
     this->baudRate = baudRate;
 }
 
 error_t GPS::start() {
-    if (!state.isStarted) {
-        serial->begin(baudRate);
+    if (!GPS::state.isStarted) {
         serial->attachReceive(onSerialReceive);
         serial->attachSendDone(onSerialSendDone);
-        state.isStarted = true;
+        serial->begin(baudRate);
+        GPS::state.isStarted = true;
+        if (onStartDone) {
+            onStartDone(SUCCESS);
+        }
         return SUCCESS;
+    }
+    if (onStartDone) {
+        onStartDone(SUCCESS);
     }
     return ERROR;
 }
 
 error_t GPS::stop() {
-    if (state.isStarted) {
+    if (GPS::state.isStarted) {
         serial->detachSendDone();
         serial->detachReceive();
         serial->end();
+        GPS::state.isStarted = false;
         if (onStopDone) {
             onStopDone(SUCCESS);
         }
         return SUCCESS;
+    }
+    if (onStopDone) {
+        onStopDone(ERROR);
     }
     return ERROR;
 }
@@ -78,7 +81,7 @@ error_t GPS::readNow() {
 }
 
 boolean_t GPS::isStarted() {
-    return state.isStarted;
+    return GPS::state.isStarted;
 }
 
 /*
@@ -89,24 +92,24 @@ void GPS::onSerialSendDone() {}
 
 void GPS::onSerialReceive(uint8_t data) {
     if (data == '$') {
-        state.lineIndex = 0;
+        GPS::state.lineIndex = 0;
     }
-    if ((data == '\n' || data == '\r') && state.lineIndex > 0 ) {
-        state.currentLine[state.lineIndex] = 0;
-        if (state.currentLine == lineBuffer1) {
-            state.currentLine = lineBuffer2;
-            state.lastLine = lineBuffer1;
+    if ((data == '\n' || data == '\r') && GPS::state.lineIndex > 0 ) {
+        GPS::state.currentLine[GPS::state.lineIndex] = 0;
+        if (GPS::state.currentLine == lineBuffer1) {
+            GPS::state.currentLine = lineBuffer2;
+            GPS::state.lastLine = lineBuffer1;
         }
         else {
-            state.currentLine = lineBuffer1;
-            state.lastLine = lineBuffer2;
+            GPS::state.currentLine = lineBuffer1;
+            GPS::state.lastLine = lineBuffer2;
         }
-        state.lineIndex = 0;
+        GPS::state.lineIndex = 0;
         postTask(onSignalDoneTask, SUCCESS);
     }
-    state.currentLine[state.lineIndex++] = data;
-    if (state.lineIndex >= MAXLENGTH) {
-        state.lineIndex = MAXLENGTH - 1;
+    GPS::state.currentLine[GPS::state.lineIndex++] = data;
+    if (GPS::state.lineIndex >= MAXLENGTH) {
+        GPS::state.lineIndex = MAXLENGTH - 1;
     }
 }
 
@@ -115,19 +118,19 @@ SETTERS FOR THE CALLBACKS
 */
 
 void GPS::attachStartDone(void(*function)(error_t)) {
-    onStartDone = function;
+    GPS::onStartDone = function;
 }
 
 void GPS::attachReadDone(void(*function)(sensor_data_t *, error_t)) {
-    onReadDone = function;
+    GPS::onReadDone = function;
 }
 
 void GPS::attachStopDone(void(*function)(error_t)) {
-    onStopDone = function;
+    GPS::onStopDone = function;
 }
 
 gps_data_t GPS::getLastData() {
-    return *lastData;
+    return GPS::lastData;
 }
 
 /*
@@ -295,14 +298,14 @@ bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
 
 void GPS::onSignalDoneTask(void* param) {
     gps_data_t* gps_data = new gps_data_t;
-    bool correct = processLine((char*)state.lastLine, gps_data);
+    bool correct = processLine((char*)GPS::state.lastLine, gps_data);
     if (!correct) {
         if (onReadDone)
             onReadDone(NULL, ERROR);
         return;
     }
     else  {
-        lastData = gps_data;
+        GPS::lastData = *gps_data;
         if (onReadDone != NULL)
             onReadDone(gps_data, SUCCESS);
     }

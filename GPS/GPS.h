@@ -44,13 +44,20 @@ typedef enum {
     S_WAKE_UP,
 } gps_request_t;
 
-struct gps_state_t;
+struct gps_state_t {
+    gps_request_t request;
+    boolean_t isStarted;
+    boolean_t isReady;
+    char* currentLine;
+    char* lastLine;
+    int lineIndex;
+};
 
 class GPS : SensorClient {
 
 private:
 
-    static gps_data_t *lastData;
+    static gps_data_t lastData;
     Serial *serial;
     static gps_state_t state;
     uint32_t baudRate;
