@@ -18,11 +18,13 @@
 #include <iostream>
 #include <cstring>
 #include <cassert>
+#include <cmath>
+#include <limits>
 #include "GPS.h"
 #include "Serial.h"
 
 int main() {
-    char const* string = "$GPGGA,092725.00,4717.11399,N,00833.91590,E,1,08,1.01,499.6,M,48.0,M,,*5B\n";
+    char const* string = "$GPRMC,083559.00,A,4717.11437,N,00833.91522,E,0.004,77.52,091202,,,A,V*2D\n";
     Serial* serial = new Serial();
     GPS gps (serial, 9600);
     for (int i = 0; i < strlen(string); ++i) {
@@ -30,10 +32,11 @@ int main() {
     }
     gps_data_t data = gps.getLastData();
     std::cout << "TIME: " << int(data.hour) << ":" << int(data.minute) << ":" << int(data.seconds) << std::endl;
-    assert(data.hour == 9 && data.minute == 27 && data.seconds == 25);
+    assert(data.hour == 8 && data.minute == 35 && data.seconds == 59);
     std::cout << "LOCATION: " << data.latitude/1000000.0f << data.latitudeChar << ", " << data.longitude/1000000.0f << data.longitudeChar << std::endl;
-    assert(data.latitude == 47285233 && data.latitudeChar == 'N' && data.longitude == 8565265 && data.longitudeChar == 'E');
-    std::cout << "ALTITUDE: " << data.altitude/100.0f << std::endl;
-    assert(data.altitude == 49960);
+    assert(data.latitude == 47285240 && data.latitudeChar == 'N' && data.longitude == 8565254 && data.longitudeChar == 'E');
+    std::cout << "SPEED: " << data.speed << std::endl;
+    assert(fabs(data.speed-0.004) < std::numeric_limits<float>::epsilon());
     return 1;
 }
+
