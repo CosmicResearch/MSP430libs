@@ -33,6 +33,10 @@ struct adxl377_calib_t {
 	int16_t _chanz;
 };
 
+struct read_state_t {
+	boolean_t x, y, z;
+}
+
 
 class SensADXL377 : SensorClient{
 	private:
@@ -41,11 +45,14 @@ class SensADXL377 : SensorClient{
 		static SensADC _adcz;
 		static adxl377_data_t _data;
 		static adxl377_calib_t _calib;
+		static read_state_t readState;
 		boolean_t started;
 
 		static void ((*_onStartDone)(error_t));
 		static void ((*_onStopDone)(error_t));
 		static void ((*_onReadDone)(sensor_data_t *, error_t));
+
+		static void notifyIfNecessary(void);
 
 		static boolean onSingleDataReadyChannelx(uint16_t data, error_t result);
 		static boolean onSingleDataReadyChannely(uint16_t data, error_t result);

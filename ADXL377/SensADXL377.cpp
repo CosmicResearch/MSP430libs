@@ -19,6 +19,7 @@
 void ((*SensADXL377::_onStartDone)(error_t)) = NULL;
 void ((*SensADXL377::_onStopDone)(error_t)) = NULL;
 void ((*SensADXL377::_onReadDone)(sensor_data_t *, error_t)) = NULL;
+read_state_t SensADXL377::readState = {false, false, false};
 
 /* Constructors ***************************************************************/
 
@@ -85,6 +86,9 @@ SensADXL377::SensADXL377(uint16_t inchx,
 boolean SensADXL377::onSingleDataReadyChannelx(uint16_t data, error_t result) {
 	// Conversion
 	SensADXL377::_data._chanx = (data * 400000 / 4096) - (SensADXL377::_calib._chanx * 400000 / 4096);  //2^12 = 4096
+	readState.x = true;
+
+	notifyIfNecessary();
 
 	return false;
 }
@@ -92,6 +96,9 @@ boolean SensADXL377::onSingleDataReadyChannelx(uint16_t data, error_t result) {
 boolean SensADXL377::onSingleDataReadyChannely(uint16_t data, error_t result) {
 
 	SensADXL377::_data._chany = (data * 400000 / 4096) - (SensADXL377::_calib._chany * 400000 / 4096);  //2^12 = 4096
+	readState.y = true;
+
+	notifyIfNecessary();
 
 	return false;
 }
@@ -99,10 +106,22 @@ boolean SensADXL377::onSingleDataReadyChannely(uint16_t data, error_t result) {
 boolean  SensADXL377::onSingleDataReadyChannelz(uint16_t data, error_t result) {
 
 	SensADXL377::_data._chanz = (data * 400000 / 4096) - (SensADXL377::_calib._chanz * 400000 / 4096);  //2^12 = 4096
+	readState.z = true;
+
+	notifyIfNecessary();
 
 	return false;
 }
 
+void SensADXL377::notifyIfNecessary() {
+
+	if (readState.x && readState.y && readState.z && _onReadDone) {
+		adxl377_data_t* ret = new adxl377_data_t;
+		*ret = SensADXL377::_data;
+		_onReadDone(ret, SUCCESS)
+	}
+
+}
 
 /* Public Methods *************************************************************/
 
@@ -159,12 +178,7 @@ error_t SensADXL377::read(){
 	if ((error_t ret = SensADXL377::_adcz.read()) != SUCCESS) {
 		return ret;
 	}
-
-	if (_onReadDone) {
-		adxl377_data_t* ret = new adxl377_data_t;
-		*ret = SensADXL377::_data;
-		_onReadDone(ret, SUCCESS)
-	}
+	GPS::readState = {false, false, false};
 
 	return SUCCESS;
 }
