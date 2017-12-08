@@ -23,7 +23,7 @@ IridiumSBD::IridiumSBD(Serial* serial, uint8_t sleepPin, uint_t ringPin, uint32_
     this->serial = serial;
     this->sleepPin = sleepPin;
     this->ringPin = ringPin;
-    this->powered = false;
+    this->powered = false; 
     countdown = new Countdown();
     this->baudRate = baudRate;
 }
@@ -42,28 +42,41 @@ void IridiumSBD::start() {
     uint16_t startUpTime = 500;
     countdown->set_ms(startUpTime);
     while(!countdown->has_expired());
-    
-    countdown->set_ms(1000);
+    countdown->release();
 
-    bool modemAlive = false;
+    send("AT\r");
+    error_t result = waitForATResponse("OK\r");
 
-    do {
-        send("AT\r");
-        modemAlive = waitForATResponse();
-    } while(!countdown->has_expired());
-
-    if (!modemAlive) {
+    if (modemAlive != SUCCESS) {
         countdown->release();
         onStartDone(ERROR);
         return;
     }
 
-    countdown->release();
     onStartDone(SUCCESS);
 }
 
-bool IridiumSBD::waitForATResponse(char* response, int responseSize, const char* promt, const char* terminator) {
+error_t IridiumSBD::waitForATResponse(const char* terminator) {
+    countdown->request();
+    countdown->set_ms(1000);
+    String repl;
+    int i = 0;
+    do {
 
+        while (serial->available()) {
+            char c = serial->read();
+            if (terminator[i] == c) {
+                repl.concat(c);
+            }
+            if (++i >= strlen(terminator) && terminator == repl) {
+                countdown->release();
+                return SUCCESS;
+            }
+        }
+
+    } while(!countdown->has_expired());
+    countdown->release();
+    RETURN ERROR;
 }
 
 void IridiumSBD::powerOn() {
