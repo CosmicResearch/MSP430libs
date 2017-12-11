@@ -1,0 +1,1 @@
+"./GYRO_01.o" "./main.o" -T"../msp430f2617.ld" -Wl,--start-group -lgcc -lc -Wl,--end-group 
