@@ -21,6 +21,8 @@
 
 #include "Senscape.h"
 
+#define ISBD_MAX_MESSAGE_LENGTH 340
+
 class IridiumSBD {
 
 private:
@@ -41,7 +43,13 @@ private:
     static void ((*onReceiveDone)(const uint8_t*, size_t, error_t));
 
     void send(const char* text);
+    void send(const String& text);
     void send(uint16_t number);
+
+    error_t waitForATResponse(const String& terminator);
+    error_t waitForATResponse(String& response, const String& prompt);
+
+    error_t doSBDIX(uint16_t& moStatus, uint16_t& moMSN, uint16_t& mtStatus, uint16_t& mtMSN, uint16_t& mtLength, uint16_t& mtQueued);
 
 public:
 
@@ -50,15 +58,11 @@ public:
     error_t start();
     error_t stop();
     error_t sendText(const char* text);
+    error_t sendText(const String& text);
     error_t sendBinary(const uint8_t* txData, size_t size);
-    error_t sendReceiveText(const char* txText);
-    error_t sendReceiveBinary(const uint8_t* txData, size_t txSize);
     bool isAsleep();
-    error_t sleep();
-    void powerOn();
-    void powerOff();
-
-    bool waitForATResponse();
+    error_t powerOn();
+    error_t powerOff();
 
     void attachStartDone(void (*)(error_t));
     void attachStopDone(void (*)(error_t));

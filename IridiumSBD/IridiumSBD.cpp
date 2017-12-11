@@ -18,6 +18,7 @@
 
 
 #include "IridiumSBD.h"
+#include "WString.h"
 
 IridiumSBD::IridiumSBD(Serial* serial, uint8_t sleepPin, uint_t ringPin, uint32_t baudRate = 19200) {
     this->serial = serial;
@@ -28,7 +29,7 @@ IridiumSBD::IridiumSBD(Serial* serial, uint8_t sleepPin, uint_t ringPin, uint32_
     this->baudRate = baudRate;
 }
 
-void IridiumSBD::start() {
+error_t IridiumSBD::start() {
 
     pinMode(sleepPin, OUTPUT);
     pinMode(ringPin, INPUT);
@@ -45,18 +46,105 @@ void IridiumSBD::start() {
     countdown->release();
 
     send("AT\r");
-    error_t result = waitForATResponse("OK\r");
-
-    if (modemAlive != SUCCESS) {
-        countdown->release();
-        onStartDone(ERROR);
-        return;
+    if (waitForATResponse("OK\r") != SUCCESS) {
+        return ERROR;
     }
 
+    send("AT&D0\r");
+    if (waitForATResponse("OK\r") != SUCCESS) {
+        return ERROR;
+    }
+
+    send("AT&K0\r");
+    if (waitForATResponse("OK\r") != SUCCESS) {
+        return ERROR;
+    }
+
+    if (this->baudRate != 19200) {
+        const String command = "AT+IPR=" + this->baudRate + "\r";
+        send(command);
+        if (waitForATResponse("OK\r") != SUCCESS) {
+            return ERROR;
+        }
+    }
     onStartDone(SUCCESS);
 }
 
-error_t IridiumSBD::waitForATResponse(const char* terminator) {
+error_t IridiumSBD::stop() {
+    return this->powerOff();
+}
+
+error_t IridiumSBD::sendText(const char* text) {
+    return sendText(String(text));
+}
+
+error_t IridiumSBD::sendText(const String& text) {
+    if (text.length() > ISBD_MAX_MESSAGE_LENGTH) {
+        return ERROR;
+    }
+    send("AT+SBDWT\r");
+    if (waitForATResponse("READY\r\n") != SUCCESS) {
+        return ERROR;
+    }
+    send(text + "\r");
+    if (waitForATResponse("0\r\n\r\nOK\r\n") != SUCCESS) {
+        return ERROR;
+    }
+    uint16_t moStatus, moMSN, mtStatus, mtMSN, mtLength, mtQueued;
+    if (doSBDIX(moStatus, moMSN, mtStatus, mtMSN, mtLength, mtQueued) != SUCCESS) {
+        return ERROR;
+    }
+    if (moStatus >= 0 && moStatus <= 4) {
+        if (onSendDone) {
+            onSendDone(SUCCESS);
+        }
+        return SUCCESS;
+    }
+    else {
+        if (onSendDone) {
+            onSendDone(ERROR);
+        }
+        return ERROR;
+    }
+}
+
+error_t IridiumSBD::sendBinary(const uint8_t* txData, size_t size) {
+    if (size > ISBD_MAX_MESSAGE_LENGTH) {
+        return ERROR;
+    }
+    send(String("AT+SBDWB=") + size);
+    if (waitForATResponse("READY\r\n") != SUCCESS) {
+        return ERROR;
+    }
+    uint16_t checksum = 0;
+    for (int i = 0; i < size; ++i) {
+        serial->write(txData[i]);
+        checksum += (uint16_t)txData[i];
+    }
+    serial->write(checksum >> 8);
+    serial->write(checksum & 0x00FF);
+    if (waitForATResponse("0\r\n\r\nOK\r\n") != SUCCESS) {
+        return ERROR;
+    }
+    uint16_t moStatus, moMSN, mtStatus, mtMSN, mtLength, mtQueued;
+    if (doSBDIX(moStatus, moMSN, mtStatus, mtMSN, mtLength, mtQueued) != SUCCESS) {
+        return ERROR;
+    }
+    if (moStatus >= 0 && moStatus <= 4) {
+        if (onSendDone) {
+            onSendDone(SUCCESS);
+        }
+        return SUCCESS;
+    }
+    else {
+        if (onSendDone) {
+            onSendDone(ERROR);
+        }
+        return ERROR;
+    }
+}
+
+error_t IridiumSBD::waitForATResponse(const String& terminator) {
     countdown->request();
     countdown->set_ms(1000);
     String repl;
@@ -68,7 +156,7 @@ error_t IridiumSBD::waitForATResponse(const char* terminator) {
             if (terminator[i] == c) {
                 repl.concat(c);
             }
-            if (++i >= strlen(terminator) && terminator == repl) {
+            if (++i >= terminator.length() && terminator == repl) {
                 countdown->release();
                 return SUCCESS;
             }
@@ -76,27 +164,112 @@ error_t IridiumSBD::waitForATResponse(const char* terminator) {
 
     } while(!countdown->has_expired());
     countdown->release();
-    RETURN ERROR;
+    return ERROR;
 }
 
-void IridiumSBD::powerOn() {
+error_t IridiumSBD::waitForATResponse(String& response, const String& prompt) {
+    countdown->request();
+    countdown->set_ms(1000);
+    int promptPos = 0;
+    enum {
+        LOOKING_FOR_PROMPT,
+        LOOKING_FOR_RESPONSE
+    }
+    int state = LOOKING_FOR_PROMPT;
+    do {
+        while(serial->available()) {
+            char c = serial->read();
+            switch(state) {
+
+                case LOOKING_FOR_PROMPT:
+                    if (c == prompt[promptPos]) {
+                        ++promptPos;
+                        if (promptPos >= prompt.length()) {
+                            state = LOOKING_FOR_RESPONSE;
+                        } 
+                    }
+                    else {
+                        promptPos = c == prompt[0]? 1 : 0;
+                    } 
+                    break;
+                case LOOKING_FOR_RESPONSE:
+                    if (c == "\r") {
+                        countdown->release();
+                        return SUCCESS;
+                    }
+                    response.concat(c);
+                    break;
+            }
+        }
+    } while(!countdown->has_expired());
+    countdown->release();
+    return ERROR;
+}
+
+error_t IridiumSBD::doSBDIX(uint16_t& moStatus, uint16_t& moMSN, uint16_t& mtStatus, uint16_t& mtMSN, uint16_t& mtLength, uint16_t& mtQueued) {
+    String response;
+    send("AT+SBDIX\r");
+    if (waitForATResponse(response, "+SBDIX: ") != SUCCESS) {
+        return ERROR;
+    }
+    char buff[100];
+    response.toCharArray(buff, sizeof(buff));
+    char* values = strtok(buff, ",");
+    moStatus = atol(values[0]);
+    moMSN = atol(values[1]);
+    mtStatus = atol(values[2]);
+    mtMSN = atol(values[3]);
+    mtLength = atol(values[4]);
+    mtQueued = atol(values[5]);
+    return SUCCESS;
+}
+
+error_t IridiumSBD::powerOn() {
     if (!powered) {
         digitalWrite(sleepPin, HIGH);
         powered = true;
+        return SUCCESS;
     }
+    return ERROR;
 }
 
-void IridiumSBD::powerOff() {
+error_t IridiumSBD::powerOff() {
     if (powered) {
         digitalWrite(sleepPin, LOW);
         powered = false;
+        return SUCCESS;
     }
+    return ERROR;
 }
 
 void IridiumSBD::send(const char* text) {
     serial->print(text);
 }
 
+void IridiumSBD::send(const String& text) {
+    serial->print(text);
+}
+
 void IridiumSBD::send(uint16_t number) {
     serial->print(number);
 } 
+
+bool IridiumSBD::isAsleep() {
+    return powered;
+}
+
+void attachStartDone(void (*function)(error_t)) {
+    this->onStartDone = function;
+}
+
+void attachStopDone(void (*function)(error_t)) {
+    this->onStopDone = function;
+}
+
+void attachSendDone(void (*function)(error_t)) {
+    this->onSendDone = function;
+}
+    
+void attachReceiveDone(void (*function)(const uint8_t*, size_t, error_t)) {
+    this->onReceiveDone = function;
+}
