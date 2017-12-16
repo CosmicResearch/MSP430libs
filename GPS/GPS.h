@@ -21,7 +21,10 @@
 
 #include "Senscape.h"
 #include "Serial.h"
+#include "WString.h"
 #include <string.h>
+
+#define UBX_CFG_RATE 0
 
 struct gps_data_t : sensor_data_t {
     float speed, angle, magvariation, HDOP;
@@ -62,6 +65,7 @@ private:
     Serial *serial;
     static gps_state_t state;
     uint32_t baudRate;
+    Countdown* countdown;
 
     static void ((*onStartDone)(error_t));
     static void ((*onStopDone)(error_t));
@@ -81,6 +85,8 @@ private:
     static void onSignalDoneTask(void* param);
 
     void sendNMEACommand(char* command);
+    void sendUBXCommandAndWaitACK(int type, uint8_t* payload, size_t len);
+    error_t waitUBXACK(int type, uint8_t classID, uint16_t msgID);
 
 public:
 
@@ -100,6 +106,8 @@ public:
     static void onSerialReceive(uint8_t data);
 
     static gps_data_t getLastData(void);
+
+    void setRate(uint16_t rate, uint16_t numMeasures);
 
 };
 
