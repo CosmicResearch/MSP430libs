@@ -36,6 +36,7 @@ PUBLIC METHODS
 GPS::GPS(Serial* serial, const uint32_t baudRate) {
     this->serial = serial;
     this->baudRate = baudRate;
+    this->countdown = new Countdown();
 }
 
 error_t GPS::start() {
@@ -427,3 +428,176 @@ void GPS::onSignalDoneTask(void* param) {
     }
     return;
 }
+
+error_t waitUBXACK(uint8_t classID, uint16_t msgID) {
+    char c = 0;
+    String repl = "";
+    serial->rxFlush();
+    counter->set_ms(100);
+    enum _replyState {
+        LOOKING_HEADER,
+        LOOKING_CLASS,
+        LOOKING_ID,
+        LOOKING_LENGTH,
+        LOOKING_PAYLOAD
+        LOOKING_CHECKSUM,
+        END
+    };
+    int replyState = LOOKING_HEADER;
+    int sizeRead;
+    int payloadSize;
+    uint8_t _classID, _msgID, CK_A, CK_B;
+    do {
+        while(serial->available() && replyState != END) {
+
+            c = serial->read();
+            repl.concat(c);
+
+            switch(replyState) {
+
+                case LOOKING_HEADER: {
+
+                    if (c == 0xB5) {
+                        ++sizeRead;
+                    }
+                    else if (c == 0x62) {
+                        ++sizeRead;
+                        if (sizeRead == 2) {
+                            replyState = LOOKING_CLASS;
+                            sizeRead = 0;
+                        }
+                        else {
+                            return ERROR;
+                        }
+                    }
+                    break;
+                }
+
+                case LOOKING_CLASS: {
+
+                    if (c == 0x05) {
+                        ++sizeRead;
+                        if (sizeRead == 1) {
+                            sizeRead = 0;
+                            replyState = LOOKING_ID;
+                        }
+                        else {
+                            return ERROR;
+                        }
+                    }
+                    break;
+                }
+
+                case LOOKING_ID: {
+                    if (c == 0x01) {
+                        ++sizeRead;
+                        if (sizeRead == 1) {
+                            sizeRead = 0;
+                            replyState = LOOKING_LENGTH;
+                        }
+                        else {
+                            return ERROR;
+                        }
+                    }
+                    break;
+                }
+                case LOOKING_LENGTH: {
+
+                    sizeRead++;
+                    if (sizeRead == 1) {
+                        payloadSize = c;
+                    }
+                    else if (sizeRead == 2) {
+                        payloadSize = (payloadSize << 8) + c;
+                        sizeRead = 0;
+                        replyState = LOOKING_PAYLOAD;
+                    }
+                    break;
+                }
+                case LOOKING_PAYLOAD: {
+
+                    sizeRead++;
+                    if (sizeRead == 1) {
+                        _classID = c;
+                    }
+                    else {
+                        _msgID = c;
+                        sizeRead = 0;
+                        replyState = LOOKING_CHECKSUM;
+                    }
+                }
+                case LOOKING_CHECKSUM: {
+
+                    sizeRead++;
+                    if (sizeRead == 1) {
+                        CK_A = c;
+                    }
+                    else {
+                        CK_B = c;
+                        sizeRead = 0;
+                        replyState = END;
+                    }
+                }
+            }
+        }
+    } while(!countdown->has_expired() && replyState != END);
+    uint8_t _CK_A = 0, _CK_B = 0;
+    for (int i = 2; i < repl.length(); ++i) {
+        _CK_A = _CK_A + command[i];
+        _CK_B = _CK_B + _CK_A;
+    }
+    if ((classID == _clasID) && (msgID == _msgID) && (_CK_A == CK_A) && (_CK_B == CK_B)) {
+        return SUCCESS;
+    }
+    else {
+        return ERROR;
+    }
+}
+
+void sendUBXCommandAndWaitACK(int type, uint8_t* payload, size_t len) {
+    String command = "";
+    command.concat((char)0xB5);
+    command.concat((char)0x62);
+    uint8_t classID, msgID;
+    switch(type) {
+
+        case UBX_CFG_RATE: {
+            command.concat((char)0x06);
+            command.concat((char)0x08);
+            classID = 0x06;
+            msgID = 0x08;
+            command.concat(len);
+            for (int i = 0; i < len; ++i) {
+                command.concat(payload[i]);
+            }
+            break;
+        }
+
+    }
+    uint8_t CK_A = 0, CK_B = 0;
+    for (int i = 2; i < command.length(); ++i) {
+        CK_A = CK_A + command[i];
+        CK_B = CK_B + CK_A;
+    }
+    command.concat(CK_A);
+    command.concat(CK_B);
+
+    serial->print(command);
+
+    serial->detachSendDone();
+    serial->detachReceive();
+
+    countdown->request();
+    error_t result = waitUBXACK(classID, msgID);
+    countdown->release();
+
+    serial->attachSendDone(onSendDone);
+	serial->attachReceive(onReceive);
+}
+
+ void setRate(uint16_t rate, uint16_t numMeasures) {
+     uint16_t payload[3] = {rate, numMeasures, 0};
+     sendUBXCommand(UBX_CFG_RATE, payload, 6);
+ }
+
+
