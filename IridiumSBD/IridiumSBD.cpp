@@ -20,13 +20,22 @@
 #include "IridiumSBD.h"
 #include "WString.h"
 
-IridiumSBD::IridiumSBD(Serial* serial, uint8_t sleepPin, uint_t ringPin, uint32_t baudRate = 19200) {
+IridiumSBD::IridiumSBD(Serial* serial, uint8_t sleepPin, uint8_t ringPin, uint32_t baudRate) {
     this->serial = serial;
     this->sleepPin = sleepPin;
     this->ringPin = ringPin;
     this->powered = false; 
     countdown = new Countdown();
     this->baudRate = baudRate;
+}
+
+IridiumSBD::IridiumSBD(Serial* serial, uint8_t sleepPin, uint8_t ringPin) {
+    this->serial = serial;
+    this->sleepPin = sleepPin;
+    this->ringPin = ringPin;
+    this->powered = false;
+    countdown = new Countdown();
+    this->baudRate = 19200;
 }
 
 error_t IridiumSBD::start() {
@@ -61,7 +70,7 @@ error_t IridiumSBD::start() {
     }
 
     if (this->baudRate != 19200) {
-        const String command = "AT+IPR=" + this->baudRate + "\r";
+        const String command = String("AT+IPR=") + String(this->baudRate) + String('\r');
         send(command);
         if (waitForATResponse("OK\r") != SUCCESS) {
             return ERROR;
@@ -174,7 +183,7 @@ error_t IridiumSBD::waitForATResponse(String& response, const String& prompt) {
     enum {
         LOOKING_FOR_PROMPT,
         LOOKING_FOR_RESPONSE
-    }
+    };
     int state = LOOKING_FOR_PROMPT;
     do {
         while(serial->available()) {
@@ -193,7 +202,7 @@ error_t IridiumSBD::waitForATResponse(String& response, const String& prompt) {
                     } 
                     break;
                 case LOOKING_FOR_RESPONSE:
-                    if (c == "\r") {
+                    if (c == '\r') {
                         countdown->release();
                         return SUCCESS;
                     }
@@ -214,13 +223,14 @@ error_t IridiumSBD::doSBDIX(uint16_t& moStatus, uint16_t& moMSN, uint16_t& mtSta
     }
     char buff[100];
     response.toCharArray(buff, sizeof(buff));
-    char* values = strtok(buff, ",");
-    moStatus = atol(values[0]);
-    moMSN = atol(values[1]);
-    mtStatus = atol(values[2]);
-    mtMSN = atol(values[3]);
-    mtLength = atol(values[4]);
-    mtQueued = atol(values[5]);
+    uint16_t *values[6] = {&moStatus, &moMSN, &mtStatus, &mtMSN, &mtLength, &mtQueued};
+    for (int i = 0; i < 6; ++ i) {
+        char *value = strtok(buff, ", ");
+        if (value == NULL) {
+            return ERROR;
+        }
+        *values[i] = atol(value);
+    }
     return SUCCESS;
 }
 
@@ -258,18 +268,18 @@ bool IridiumSBD::isAsleep() {
     return powered;
 }
 
-void attachStartDone(void (*function)(error_t)) {
+void IridiumSBD::attachStartDone(void (*function)(error_t)) {
     this->onStartDone = function;
 }
 
-void attachStopDone(void (*function)(error_t)) {
+void IridiumSBD::attachStopDone(void (*function)(error_t)) {
     this->onStopDone = function;
 }
 
-void attachSendDone(void (*function)(error_t)) {
+void IridiumSBD::attachSendDone(void (*function)(error_t)) {
     this->onSendDone = function;
 }
     
-void attachReceiveDone(void (*function)(const uint8_t*, size_t, error_t)) {
+void IridiumSBD::attachReceiveDone(void (*function)(const uint8_t*, size_t, error_t)) {
     this->onReceiveDone = function;
 }
