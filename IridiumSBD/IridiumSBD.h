@@ -54,6 +54,7 @@ private:
 public:
 
     IridiumSBD(Serial* serial, uint8_t sleepPin, uint8_t ringPin, uint32_t baudRate = 19200);
+    IridiumSBD(Serial* serial, uint8_t sleepPin, uint8_t ringPin);
 
     error_t start();
     error_t stop();
