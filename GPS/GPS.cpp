@@ -29,6 +29,7 @@ void ((*GPS::onReadDone)(sensor_data_t*, error_t)) = NULL;
 void ((*GPS::onStartDone)(error_t)) = NULL;
 void ((*GPS::onStopDone)(error_t)) = NULL;
 
+
 /*
 PUBLIC METHODS
 */
@@ -210,8 +211,8 @@ uint32_t GPS::stringToFloatIn100ths(char* &c) {
     if (*c++ == '.') {
         uint8_t multiplier = 10;
         while (*c >= '0' && *c <= '9' && multiplier >= 1) {
-            ret += multiplier * (*c - '0');
-            multiplier /= 10;
+            ret = ret + multiplier * (*c - '0');
+            multiplier = multiplier / 10;
             ++c;
         }
     }
@@ -254,15 +255,18 @@ bool GPS::processLine(char* line, gps_data_t* data) {
     if(strcmp(messageType,"GGA") == 0) {
         return processGGALine(line, data);
     }
-    if (strcmp(messageType, "RMC") == 0) {
+    else if (strcmp(messageType, "RMC") == 0) {
         return processRMCLine(line, data);
+    }
+    else if (strcmp(messageType, "GLL") == 0) {
+        return processGLLLine(line, data);
     }
     return false;
 }
 
 bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
-    data->type = "GGA";
     GGALine += 7;
+    data->type = "GGA";
     if (*GGALine != ',') {
         data->hour = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
         data->minute = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
@@ -331,6 +335,55 @@ bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
         GGALine++;
         data->altitude = -1;
     }
+    delete GGALine;
+    return true;
+
+}
+
+bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
+    GLLLine+=7;
+    data->type = "GLL";
+    if (*GLLLine != ',') {
+        data->latitude = stringToDegreesIn1000000ths(GLLLine); GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->latitude = 0;
+    }
+    if (*GLLLine != ',') {
+        data->latitudeChar = *GLLLine++; GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->latitudeChar = 'N';
+    }
+    if (*GLLLine != ',') {
+        data->longitude = stringToDegreesIn1000000ths(GLLLine); GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->longitude = 0;
+    }
+    if (*GLLLine != ',') {
+        data->longitudeChar = *GLLLine++; GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->longitudeChar = 'E';
+    }
+    if (*GLLLine != ',') {
+            data->hour = charIntToInt(*GLLLine++)*10 + charIntToInt(*GLLLine++);
+            data->minute = charIntToInt(*GLLLine++)*10 + charIntToInt(*GLLLine++);
+            data->seconds = uint8_t(stringToFloat(GLLLine)); GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->hour = 0;
+        data->minute = 0;
+        data->seconds = 0;
+    }
+    data->fix = (*GLLLine=='A'); GLLLine++; GLLLine++;
+    delete GLLLine;
     return true;
 }
 
@@ -409,6 +462,7 @@ bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
         data->magvariation = 0.0f;
     }
     data->altitude = -1;
+    delete RMCLine;
     return true;
 }
 
@@ -418,12 +472,18 @@ void GPS::onSignalDoneTask(void* param) {
     if (!correct) {
         if (onReadDone)
             onReadDone(NULL, ERROR);
+        delete gps_data;
         return;
     }
     else  {
         GPS::lastData = *gps_data;
-        if (onReadDone != NULL)
+        if (onReadDone != NULL) {
             onReadDone(gps_data, SUCCESS);
+        }
+        else {
+            delete gps_data;
+        }
     }
     return;
 }
+
