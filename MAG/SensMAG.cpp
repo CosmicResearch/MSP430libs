@@ -26,6 +26,7 @@ SPI *SensMAG::_spiObj = NULL;
 
 mag_scale SensMAG::mScale = M_SCALE_2GS;
 mag_odr SensMAG::mRate = M_ODR_125;
+float_t SensMAG::mRes = 00;
 
 void ((*SensMAG::_onRequestAccelMagIdDone)(uint8_t *id, error_t));
 void ((*SensMAG::_onStartDone)(error_t));
@@ -45,7 +46,8 @@ SensMAG::SensMAG(SPI *spi, Resource *resource, mag_scale mScl, mag_odr mOdr){
 /* Private Methods ************************************************************/
 
 void SensMAG::calcmRes(){
-    mRes = mScale == M_SCALE_2GS ? 2.0 / 32768.0 : (float) (mScale << 2) / 32768.0;
+    mRes = mScale == M_SCALE_2GS ? 2.0 / 32768.0 :
+    		(float_t) (mScale << 2) / 32768.0;
 }
 
 void SensMAG::readRegister(uint8_t addr, uint8_t *data){
@@ -126,14 +128,14 @@ void SensMAG::onSpiResourceGranted() {
     _spiObj->attachTransferDone(onSpiTranferDone);
 
     switch(_state.req) {
-    		case S_START:
-    			initMag();
-    			setMagODR(mRate);
-    			setMagScale(mScale);
-    			break;
-    		case S_STOP:
-    			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
-    			break;
+    	case S_START:
+    		initMag();
+    		setMagODR(mRate);
+    		setMagScale(mScale);
+    		break;
+    	case S_STOP:
+    		postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
+    		break;
         case S_XM_CHIP_ID:
             readRegister(LSM9DS0_REGISTER_WHO_AM_I_XM, &lsm9ds0_buffer[0x00]);
             lsm9ds0_xm_id = lsm9ds0_buffer[0x00];
@@ -159,17 +161,17 @@ void SensMAG::onSpiTranferDone(uint8_t* tx_buf, uint8_t* rx_buf, uint16_t len, e
     			break;
     		case S_READ:
     			if (result == SUCCESS){
-    				_data.x = rx_buf[1]; // xhi
-				_data.x <<= 8;
-				_data.x |= rx_buf[0]; //xlo
+					_data.x = rx_buf[1]; // xhi
+					_data.x <<= 8;
+					_data.x |= rx_buf[0]; //xlo
 
-				_data.y |= rx_buf[3]; //yhi
-				_data.y <<= 8;
-				_data.y = rx_buf[2]; //ylo
+					_data.y |= rx_buf[3]; //yhi
+					_data.y <<= 8;
+					_data.y = rx_buf[2]; //ylo
 
-				_data.z |= rx_buf[5]; //zlo
-				_data.z <<= 8;
-				_data.z |= rx_buf[4]; //zhi
+					_data.z |= rx_buf[5]; //zlo
+					_data.z <<= 8;
+					_data.z |= rx_buf[4]; //zhi
     			}
     			postTask(onSignalDoneTask, (void*)(uint16_t)result);
     			break;
@@ -192,7 +194,7 @@ void SensMAG::onSpiTranferDone(uint8_t* tx_buf, uint8_t* rx_buf, uint16_t len, e
 void SensMAG::onSignalDoneTask(void *param) {
 	lsm9ds0_req_t req = _state.req;
 
-
+	error_t result = (error_t)(uint16_t)param;
 	/* disable SPI bus */
     _spiObj->end();
     /* detach SPI callbacks */
@@ -206,7 +208,7 @@ void SensMAG::onSignalDoneTask(void *param) {
     		case S_START:
         		if (_onStartDone) {
                 _state.is_started = true;
-                _onStartDone(SUCCESS);
+                _onStartDone(result);
         		}
         		break;
     		case S_STOP:

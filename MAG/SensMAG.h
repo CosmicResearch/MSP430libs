@@ -99,7 +99,7 @@ class SensMAG : public SensorClient {
 
         static mag_scale mScale;
 	    static mag_odr mRate;
-		static float mRes;
+		static float_t mRes;
 
         static void ((*_onRequestAccelMagIdDone)(uint8_t *id, error_t));
         static void ((*_onStartDone)(error_t));
