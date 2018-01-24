@@ -31,6 +31,12 @@ const uint8_t LSM9DS0_REGISTER_OUT_Z_H_M           = 0x0D;
 const uint8_t LSM9DS0_REGISTER_WHO_AM_I_XM         = 0x0F;
 const uint8_t LSM9DS0_REGISTER_INT_CTRL_REG_M      = 0x12;
 const uint8_t LSM9DS0_REGISTER_INT_SRC_REG_M       = 0x13;
+const uint8_t LSM9DS0_REGISTER_OFFSET_X_L_M		  = 0x16;
+const uint8_t LSM9DS0_REGISTER_OFFSET_X_H_M		  = 0x17;
+const uint8_t LSM9DS0_REGISTER_OFFSET_Y_L_M		  = 0x18;
+const uint8_t LSM9DS0_REGISTER_OFFSET_Y_H_M		  = 0x19;
+const uint8_t LSM9DS0_REGISTER_OFFSET_Z_L_M		  = 0x1A;
+const uint8_t LSM9DS0_REGISTER_OFFSET_Z_H_M		  = 0x1B;
 const uint8_t LSM9DS0_REGISTER_CTRL_REG0_XM        = 0x19;
 const uint8_t LSM9DS0_REGISTER_CTRL_REG1_XM        = 0x20;
 const uint8_t LSM9DS0_REGISTER_CTRL_REG2_XM        = 0x21;
@@ -83,12 +89,7 @@ enum mag_odr
 
 struct lsm9ds0_state_t;
 
-struct lsm9ds0_data_t : sensor_data_t {
-    int16_t x;
-    int16_t y;
-    int16_t z;
-    //int32_t u_temp;
-};
+struct lsm9ds0_data_t;
 
 class SensMAG : public SensorClient {
     private:
@@ -101,9 +102,14 @@ class SensMAG : public SensorClient {
 	    static mag_odr mRate;
 		static float_t mRes;
 
+		static int16_t *_calibX;
+		static int16_t *_calibY;
+		static int16_t *_calibZ;
+
         static void ((*_onRequestAccelMagIdDone)(uint8_t *id, error_t));
         static void ((*_onStartDone)(error_t));
         static void ((*_onStopDone)(error_t));
+        static void ((*_onCalibrationDone)(error_t));
         static void ((*_onReadDone)(sensor_data_t *, error_t));
 
         static void calcmRes();
@@ -137,12 +143,14 @@ class SensMAG : public SensorClient {
          float calcMag(int32_t mag);
 
          error_t requestAccelMagId();
-         error_t getMagnetism(sensor_data_t *data, int16_t *xhi, int16_t *yhi, int16_t *zhi);
+         error_t getMagnetism(int16_t *xhi, int16_t *yhi, int16_t *zhi);
+         error_t calibrate(int16_t *x, int16_t *y, int16_t *z);
 
            /* call-backs */
 	   void attachRequestAccelMagIdDone(void (*)(uint8_t *id, error_t));
 	   virtual void attachStartDone(void (*)(error_t));
 	   virtual void attachStopDone(void (*)(error_t));
+	   void attachCalibrationDonde(void (*)(error_t));
 	   virtual void attachReadDone(void (*)(sensor_data_t *, error_t));
 
 
