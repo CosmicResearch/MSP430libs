@@ -6,6 +6,7 @@ typedef enum {
 	S_STOP,
 	S_START,
 	S_READ,
+	S_CALIB,
 	S_XM_CHIP_ID
 } lsm9ds0_req_t;
 
@@ -15,6 +16,12 @@ struct lsm9ds0_state_t {
     lsm9ds0_req_t req;
 };
 
+struct lsm9ds0_data_t : sensor_data_t {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+    //int32_t u_temp;
+};
 
 uint8_t lsm9ds0_buffer[24] =  { 0 };
 uint8_t lsm9ds0_xm_id;
@@ -24,6 +31,10 @@ lsm9ds0_data_t SensMAG::_data;
 Resource *SensMAG::_spiResource = NULL;
 SPI *SensMAG::_spiObj = NULL;
 
+int16_t *SensMAG::_calibX = 0;
+int16_t *SensMAG::_calibY = 0;
+int16_t *SensMAG::_calibZ = 0;
+
 mag_scale SensMAG::mScale = M_SCALE_2GS;
 mag_odr SensMAG::mRate = M_ODR_125;
 float_t SensMAG::mRes = 00;
@@ -31,6 +42,7 @@ float_t SensMAG::mRes = 00;
 void ((*SensMAG::_onRequestAccelMagIdDone)(uint8_t *id, error_t));
 void ((*SensMAG::_onStartDone)(error_t));
 void ((*SensMAG::_onStopDone)(error_t));
+void ((*SensMAG::_onCalibrationDone)(error_t));
 void ((*SensMAG::_onReadDone)(sensor_data_t *, error_t));
 
 
@@ -41,6 +53,9 @@ SensMAG::SensMAG(SPI *spi, Resource *resource, mag_scale mScl, mag_odr mOdr){
     _spiObj = spi;
     mRate = mOdr;
     mScale = mScl;
+    _data.x = 0;
+    _data.y = 0;
+    _data.z = 0;
 }
 
 /* Private Methods ************************************************************/
@@ -128,27 +143,35 @@ void SensMAG::onSpiResourceGranted() {
     _spiObj->attachTransferDone(onSpiTranferDone);
 
     switch(_state.req) {
-    	case S_START:
-    		initMag();
-    		setMagODR(mRate);
-    		setMagScale(mScale);
-    		break;
-    	case S_STOP:
-    		postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
-    		break;
-        case S_XM_CHIP_ID:
-            readRegister(LSM9DS0_REGISTER_WHO_AM_I_XM, &lsm9ds0_buffer[0x00]);
-            lsm9ds0_xm_id = lsm9ds0_buffer[0x00];
-            postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
-            break;
-        case S_READ:
-            readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
-            break;
-        case S_IDLE:
-        default:
-			// TODO: release SPI bus!
-        	postTask(onSignalDoneTask, (void*)(uint16_t)ERROR);
-            break;
+	case S_START:
+		initMag();
+		setMagODR(mRate);
+		setMagScale(mScale);
+		break;
+	case S_STOP:
+		postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
+		break;
+	case S_XM_CHIP_ID:
+		readRegister(LSM9DS0_REGISTER_WHO_AM_I_XM, &lsm9ds0_buffer[0x00]);
+		lsm9ds0_xm_id = lsm9ds0_buffer[0x00];
+		postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
+		break;
+	case S_READ:
+		readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
+		break;
+	case S_CALIB:
+		writeRegister(LSM9DS0_REGISTER_OFFSET_X_L_M, (uint8_t)(*_calibX & 0xFF));
+		writeRegister(LSM9DS0_REGISTER_OFFSET_X_H_M, (uint8_t)((*_calibX & 0xFF00) >> 8));
+		writeRegister(LSM9DS0_REGISTER_OFFSET_Y_L_M, (uint8_t)(*_calibY & 0xFF));
+		writeRegister(LSM9DS0_REGISTER_OFFSET_Y_H_M, (uint8_t)((*_calibY & 0xFF00) >> 8));
+		writeRegister(LSM9DS0_REGISTER_OFFSET_Z_L_M, (uint8_t)(*_calibZ & 0xFF));
+		writeRegister(LSM9DS0_REGISTER_OFFSET_Z_H_M, (uint8_t)((*_calibZ & 0xFF00) >> 8));
+		break;
+	case S_IDLE:
+	default:
+		// TODO: release SPI bus!
+		postTask(onSignalDoneTask, (void*)(uint16_t)ERROR);
+		break;
     }
 }
 
@@ -173,6 +196,9 @@ void SensMAG::onSpiTranferDone(uint8_t* tx_buf, uint8_t* rx_buf, uint16_t len, e
 					_data.z <<= 8;
 					_data.z |= rx_buf[4]; //zhi
     			}
+    			postTask(onSignalDoneTask, (void*)(uint16_t)result);
+    			break;
+    		case S_CALIB:
     			postTask(onSignalDoneTask, (void*)(uint16_t)result);
     			break;
         case S_IDLE:
@@ -219,19 +245,23 @@ void SensMAG::onSignalDoneTask(void *param) {
 				/* configure chip select as input */
 				pinMode(CHIP_CS_XM, INPUT);
 				/* notify stop event */
-				_onStopDone(SUCCESS);
+				_onStopDone(result);
 			}
 			break;
     		case S_XM_CHIP_ID:
 			if (_onRequestAccelMagIdDone){
-				_onRequestAccelMagIdDone(&lsm9ds0_xm_id, SUCCESS);
+				_onRequestAccelMagIdDone(&lsm9ds0_xm_id, result);
 			}
 			break;
     		case S_READ:
     			if (_onReadDone) {
-    				_onReadDone((sensor_data_t*)&_data, SUCCESS);
+    				_onReadDone((sensor_data_t*)&_data, result);
     			}
     			break;
+    		case S_CALIB:
+    			if (_onCalibrationDone){
+    				_onCalibrationDone(result);
+    			}
 		case S_IDLE:
 		default:
 			break;
@@ -299,7 +329,7 @@ error_t SensMAG::requestAccelMagId() {
     return EBUSY;
 }
 
-error_t SensMAG::getMagnetism(sensor_data_t *data, int16_t *mag_x, int16_t *mag_y, int16_t *mag_z){
+error_t SensMAG::getMagnetism(int16_t *mag_x, int16_t *mag_y, int16_t *mag_z){
 	if (_state.is_started){
 		*mag_x = _data.x;
 		*mag_y = _data.y;
@@ -309,6 +339,19 @@ error_t SensMAG::getMagnetism(sensor_data_t *data, int16_t *mag_x, int16_t *mag_
 	return ERROR;
 }
 
+error_t SensMAG::calibrate(int16_t *x, int16_t *y, int16_t *z){
+	if (_state.is_started){
+		if (_state.req == S_IDLE) {
+			_calibX = x;
+			_calibY = y;
+			_calibZ = z;
+			_state.req = S_CALIB;
+			return _spiResource->request();
+		}
+		return EBUSY;
+	}
+	return ERROR;
+}
 
 /* call-backs */
 
@@ -322,6 +365,11 @@ void SensMAG::attachStartDone(void (*function)(error_t)){
 void SensMAG::attachStopDone(void (*function)(error_t)){
 	_onStopDone = function;
 }
+
+void SensMAG::attachCalibrationDonde(void (*function)(error_t)){
+	_onCalibrationDone = function;
+}
+
 void SensMAG::attachReadDone(void (*function)(sensor_data_t *, error_t)){
 	_onReadDone = function;
 }
