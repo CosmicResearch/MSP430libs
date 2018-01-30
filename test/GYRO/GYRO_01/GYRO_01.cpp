@@ -66,12 +66,16 @@ void onReadDone(sensor_data_t* data, error_t error) {
     	return;
     }
 
-    lsm9ds0Gyro_data_t gyro_data = *((lsm9ds0gyro_data_t*)data);
+    lsm9ds0gyro_data_t gyro_data = *((lsm9ds0gyro_data_t*)data);
+    float x = 0.;
+    float y = 0.;
+	float z = 0.;
+    GYRO.getData(gyro_data, x, y, z);
     Debug.println("---------------------------------------");
     Debug.println("new gyro data");
-    Debug.print("X axis: ").println(calcGyro(gyro_data.x));
-    Debug.print("Y axis: ").println(calcGyro(gyro_data.y));
-    Debug.print("Z axis: ").println(calcGyro(gyro_data.z));
+    Debug.print("X axis: ").println(x);
+    Debug.print("Y axis: ").println(y);
+    Debug.print("Z axis: ").println(z);
 
     if (--readings) {
     	Debug.println();
