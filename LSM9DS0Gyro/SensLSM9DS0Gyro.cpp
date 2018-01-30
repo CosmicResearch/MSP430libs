@@ -28,10 +28,11 @@ void ((*SensLSM9DS0Gyro::_onStartDone)(error_t));
 void ((*SensLSM9DS0Gyro::_onStopDone)(error_t));
 void ((*SensLSM9DS0Gyro::_onReadDone)(sensor_data_t *, error_t));
 
-SensLSM9DS0Gyro::SensLSM9DS0Gyro(SPI *spi, Resource *resource, const lsm9ds0gyro_scale_t scale) {
+SensLSM9DS0Gyro::SensLSM9DS0Gyro(SPI *spi, Resource *resource, const lsm9ds0gyro_scale_t scale, const lsm9ds0gyro_odr_t rate) {
 	_spiResource = resource;
 	_spiObj = spi;
 	_state.scale = scale;
+	_state.odrate = rate;
 	/* sensor default data */
 	_data.x = 0.;
 	_data.y = 0.;
@@ -65,33 +66,6 @@ void SensLSM9DS0Gyro::writeRegister(uint8_t reg, uint8_t value) {
 	digitalWrite(LSM9DS0_G_CSN, HIGH);
 }
 
-void SensLSM9DS0Gyro::onSpiTransferDone(uint8_t* tx_buf, uint8_t* rx_buf, uint16_t len, error_t result) {
-	/* de-assert chip select */
-	digitalWrite(LSM9DS0_G_CSN, HIGH);
-
-	switch(_state.req) {
-		case S_START:
-			if (result == SUCCESS) {
-				//TODO
-			}
-			postTask(onSignalDoneTask, (void*)(uint16_t)result);
-			break;
-		case S_READ:
-		case S_READ_NOW:
-			if (result == SUCCESS) {
-				_data.x = ((rx_buf[1] << 8) | rx_buf[0]) * _gyro_dps_digit;
-				_data.y = ((rx_buf[3] << 8) | rx_buf[2]) * _gyro_dps_digit;
-				_data.z = ((rx_buf[5] << 8) | rx_buf[4])  * _gyro_dps_digit;
-			}
-			postTask(onSignalDoneTask, (void*)(uint16_t)result);
-			break;
-		default:
-			/* fatal error */
-			postTask(onSignalDoneTask, (void*)(uint16_t)ERROR);
-			break;
-	}
-}
-
 void SensLSM9DS0Gyro::onSpiResourceGranted() {
     /* enable SPI bus */
     _spiObj->begin();
@@ -102,7 +76,9 @@ void SensLSM9DS0Gyro::onSpiResourceGranted() {
     	case S_START:
     		/* check device id */
     		if (readRegister(LSM9DS0_REGISTER_WHO_AM_I_G) == LSM9DS0_G_ID) {
-    			//TODO + Reset?
+    			initGyro();
+    			setScale(_state.scale);
+    			setODRate(_state.odrate);
     		}
     		else {
     			/* invalid device id */
@@ -115,26 +91,10 @@ void SensLSM9DS0Gyro::onSpiResourceGranted() {
     		break;
     	case S_READ:
     	case S_READ_NOW:
-    		if (!_state.is_ready) {
-    		    if (_state.req == S_READ) {
-                    /* put sensor in normal mode */
-                    //setPowerMode(BMP280_NORMAL_MODE);
-    		    }
-    		    else {
-    		        /* put sensor in forced mode */
-    		        //setPowerMode(BMP280_FORCED_MODE);
-    		    }
-    			/* wait for measure completed (100 msec max) */
-    			//_spiTimer->startOneShot(LSM9DS0_DELAY);
+			digitalWrite(LSM9DS0_G_CSN, LOW);
 
-    			_state.is_ready = true;
-    		}
-    		else {
-    	        digitalWrite(LSM9DS0_G_CSN, LOW);
-    	        
-    	        _spiObj->transfer(LSM9DS0_REGISTER_OUT_X_L_G | 0x80 | 0x40);
-    	        _spiObj->transfer(NULL, lsm9ds0_buffer, 6);
-    		}
+			_spiObj->transfer(LSM9DS0_REGISTER_OUT_X_L_G | 0x80 | 0x40);
+			_spiObj->transfer(NULL, lsm9ds0_buffer, 6);
     		break;
         default:
         	/* fatal error */
@@ -143,17 +103,35 @@ void SensLSM9DS0Gyro::onSpiResourceGranted() {
     }
 }
 
-void SensLSM9DS0Gyro::onDataReady() {
-    if (_spiResource->isOwner()) {
-        /* start reading X,Y and Z registers */
-        digitalWrite(LSM9DS0_G_CSN, LOW);
-        _spiObj->transfer(LSM9DS0_REGISTER_OUT_X_L_G | 0x40 | 0x80);
-        _spiObj->transfer(NULL, lsm9ds0_buffer, 6);
-    }
-    else {
-        /* fatal error */
-        postTask(onSignalDoneTask, (void*)(uint16_t)ERROR);
-    }
+void SensLSM9DS0Gyro::onSpiTransferDone(uint8_t* tx_buf, uint8_t* rx_buf, uint16_t len, error_t result) {
+	/* de-assert chip select */
+	digitalWrite(LSM9DS0_G_CSN, HIGH);
+
+	switch(_state.req) {
+		case S_START:
+			postTask(onSignalDoneTask, (void*)(uint16_t)result);
+			break;
+		case S_READ:
+		case S_READ_NOW:
+			if (result == SUCCESS) {
+				_data.x = ((rx_buf[1] << 8) | rx_buf[0]);
+				_data.y = ((rx_buf[3] << 8) | rx_buf[2]);
+				_data.z = ((rx_buf[5] << 8) | rx_buf[4]);
+			}
+			postTask(onSignalDoneTask, (void*)(uint16_t)result);
+			break;
+		default:
+			/* fatal error */
+			postTask(onSignalDoneTask, (void*)(uint16_t)ERROR);
+			break;
+	}
+
+	/* disable SPI bus */
+	    _spiObj->end();
+	    /* detach SPI callbacks */
+	    _spiObj->detachTransferDone();
+	    /* release SPI resource */
+	    _spiResource->release();
 }
 
 void SensLSM9DS0Gyro::onSignalDoneTask(void *param) {
@@ -240,6 +218,31 @@ void SensLSM9DS0Gyro::setODRate(lsm9ds0gyro_odr_t gRate) {
 	writeRegister(LSM9DS0_REGISTER_CTRL_REG1_G, reg);
 }
 
+float SensLSM9DS0Gyro::getDPS() {
+	return _gyro_dps_digit;
+}
+
+error_t SensLSM9DS0Gyro::getData(lsm9ds0gyro_data_t data, float_t gyro_x, float_t gyro_y, float_t gyro_z) {
+	if (_state.is_started) {
+		gyro_x = data.x * _gyro_dps_digit;
+		gyro_y = data.y * _gyro_dps_digit;
+		gyro_z = data.z * _gyro_dps_digit;
+		return SUCCESS;
+	}
+	return ERROR;
+}
+
+void SensLSM9DS0Gyro::initGyro() {
+	/* Makes the Gyro continuous */
+	uint8_t continuous = 0b00001111;
+	writeRegister(LSM9DS0_REGISTER_CTRL_REG1_G, continuous);
+
+	/* Set default values */
+	writeRegister(LSM9DS0_REGISTER_CTRL_REG2_G, 0x00);
+	writeRegister(LSM9DS0_REGISTER_CTRL_REG4_G, 0x00);
+	writeRegister(LSM9DS0_REGISTER_CTRL_REG5_G, 0x00);
+}
+
 error_t SensLSM9DS0Gyro::start() {
     if (!_state.is_started) {
         if (_state.req == S_IDLE) {
@@ -248,21 +251,6 @@ error_t SensLSM9DS0Gyro::start() {
             /* configure chip select as high output */
             pinMode(LSM9DS0_G_CSN, OUTPUT);
             digitalWrite(LSM9DS0_G_CSN, HIGH);
-            
-            /* Makes the Gyro continuous */
-            uint8_t continuous = 0b00001111;
-            writeRegister(LSM9DS0_REGISTER_CTRL_REG1_G, continuous);
-            
-            /* Set default values */
-            writeRegister(LSM9DS0_REGISTER_CTRL_REG2_G, 0x00);
-            writeRegister(LSM9DS0_REGISTER_CTRL_REG4_G, 0x00);
-            writeRegister(LSM9DS0_REGISTER_CTRL_REG5_G, 0x00);
-
-            /* Set output data rate - Reg.1 */
-            setODRate(_state.odrate);
-
-            /* Set scale settings - Reg.4 */
-            setScale(_state.scale);
             
             /* attach SPI resource */
             _spiResource->attachResourceGranted(onSpiResourceGranted);
