@@ -92,6 +92,7 @@ struct lsm9ds0_state_t;
 struct lsm9ds0_data_t;
 
 class SensMAG : public SensorClient {
+
     private:
 		static lsm9ds0_data_t _data;
 		static lsm9ds0_state_t _state;
@@ -139,12 +140,12 @@ class SensMAG : public SensorClient {
 		virtual error_t readNow(void);
 		virtual boolean_t isStarted(void);
 
-         //Convert from RAW signed 16-bit value to Gauss (Gs)
-         float calcMag(int32_t mag);
+		//Convert from RAW signed 16-bit value to Gauss (Gs)
+		float calcMag(int32_t mag);
 
-         error_t requestAccelMagId();
-         error_t getMagnetism(int16_t *xhi, int16_t *yhi, int16_t *zhi);
-         error_t calibrate(int16_t *x, int16_t *y, int16_t *z);
+	 	error_t requestAccelMagId();
+	 	error_t getMagnetism(int16_t *xhi, int16_t *yhi, int16_t *zhi);
+	 	error_t calibrate(int16_t *x, int16_t *y, int16_t *z);
 
            /* call-backs */
 	   void attachRequestAccelMagIdDone(void (*)(uint8_t *id, error_t));
