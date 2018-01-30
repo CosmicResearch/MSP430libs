@@ -1,4 +1,4 @@
-/*
++/*
     Bondar libraries
     Copyright (C) 2017  Associació Cosmic Research
     This program is free software: you can redistribute it and/or modify
@@ -178,7 +178,7 @@ error_t SensADXL377::read(){
 	if ((error_t ret = SensADXL377::_adcz.read()) != SUCCESS) {
 		return ret;
 	}
-	GPS::readState = {false, false, false};
+	ADXL377::readState = {false, false, false};
 
 	return SUCCESS;
 }
