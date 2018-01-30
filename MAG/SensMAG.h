@@ -120,7 +120,7 @@ class SensMAG : public SensorClient {
         static void setMagScale(mag_scale mScl);
         static void setMagODR(mag_odr mRate);
 
-        static void readRegister(uint8_t addr, uint8_t *data);
+        static uint8_t readRegister(uint8_t reg);
         static void readBuffer(uint8_t addr, uint8_t *buffer, uint8_t len);
 
 
