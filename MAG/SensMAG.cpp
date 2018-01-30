@@ -138,36 +138,37 @@ void SensMAG::setMagODR(mag_odr mRate){
 void SensMAG::onSpiResourceGranted() {
     /* enable SPI bus */
     _spiObj->begin();
-
     /* attach SPI callbacks */
     _spiObj->attachTransferDone(onSpiTranferDone);
 
     switch(_state.req) {
-	case S_START:
-		initMag();
-		setMagODR(mRate);
-		setMagScale(mScale);
-		break;
-	case S_STOP:
-		postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
-		break;
-	case S_XM_CHIP_ID:
-		readRegister(LSM9DS0_REGISTER_WHO_AM_I_XM, &lsm9ds0_buffer[0x00]);
-		lsm9ds0_xm_id = lsm9ds0_buffer[0x00];
-		postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
-		break;
-	case S_READ:
-		readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
-		break;
-	case S_CALIB:
-		writeRegister(LSM9DS0_REGISTER_OFFSET_X_L_M, (uint8_t)(*_calibX & 0xFF));
-		writeRegister(LSM9DS0_REGISTER_OFFSET_X_H_M, (uint8_t)((*_calibX & 0xFF00) >> 8));
-		writeRegister(LSM9DS0_REGISTER_OFFSET_Y_L_M, (uint8_t)(*_calibY & 0xFF));
-		writeRegister(LSM9DS0_REGISTER_OFFSET_Y_H_M, (uint8_t)((*_calibY & 0xFF00) >> 8));
-		writeRegister(LSM9DS0_REGISTER_OFFSET_Z_L_M, (uint8_t)(*_calibZ & 0xFF));
-		writeRegister(LSM9DS0_REGISTER_OFFSET_Z_H_M, (uint8_t)((*_calibZ & 0xFF00) >> 8));
-		break;
-	case S_IDLE:
+		case S_START:
+			//initMag();
+			writeRegister(LSM9DS0_REGISTER_CTRL_REG7_XM, 0x00); // Continuous conversion mode
+			//setMagODR(mRate);
+			//setMagScale(mScale);
+			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
+			break;
+		case S_STOP:
+			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
+			break;
+		case S_XM_CHIP_ID:
+			readRegister(LSM9DS0_REGISTER_WHO_AM_I_XM, &lsm9ds0_buffer[0x00]);
+			lsm9ds0_xm_id = lsm9ds0_buffer[0x00];
+			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
+			break;
+		case S_READ:
+			readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
+			break;
+		case S_CALIB:
+			writeRegister(LSM9DS0_REGISTER_OFFSET_X_L_M, (uint8_t)(*_calibX & 0xFF));
+			writeRegister(LSM9DS0_REGISTER_OFFSET_X_H_M, (uint8_t)((*_calibX & 0xFF00) >> 8));
+			writeRegister(LSM9DS0_REGISTER_OFFSET_Y_L_M, (uint8_t)(*_calibY & 0xFF));
+			writeRegister(LSM9DS0_REGISTER_OFFSET_Y_H_M, (uint8_t)((*_calibY & 0xFF00) >> 8));
+			writeRegister(LSM9DS0_REGISTER_OFFSET_Z_L_M, (uint8_t)(*_calibZ & 0xFF));
+			writeRegister(LSM9DS0_REGISTER_OFFSET_Z_H_M, (uint8_t)((*_calibZ & 0xFF00) >> 8));
+			break;
+		case S_IDLE:
 	default:
 		// TODO: release SPI bus!
 		postTask(onSignalDoneTask, (void*)(uint16_t)ERROR);
@@ -239,14 +240,14 @@ void SensMAG::onSignalDoneTask(void *param) {
         		break;
     		case S_STOP:
     			if (_onStopDone) {
-				_state.is_started = false;
-				/* detach SPI resource callback */
-				_spiResource->detachResourceGranted();
-				/* configure chip select as input */
-				pinMode(CHIP_CS_XM, INPUT);
-				/* notify stop event */
-				_onStopDone(result);
-			}
+					_state.is_started = false;
+					/* detach SPI resource callback */
+					_spiResource->detachResourceGranted();
+					/* configure chip select as input */
+					pinMode(CHIP_CS_XM, INPUT);
+					/* notify stop event */
+					_onStopDone(result);
+    			}
 			break;
     		case S_XM_CHIP_ID:
 			if (_onRequestAccelMagIdDone){
