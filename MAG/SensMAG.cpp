@@ -72,12 +72,28 @@ void SensMAG::readRegister(uint8_t addr, uint8_t *data){
     digitalWrite(CHIP_CS_XM, HIGH); // Close communication
 }
 
+uint8_t SensMAG::readRegister(uint8_t reg) {
+	uint8_t value;
+	/* assert chip select */
+    digitalWrite(CHIP_CS_XM, LOW);
+
+	/* read register */
+    _spiObj->transfer((reg & 0x3F) | 0x80);
+    value = _spiObj->transfer(0xFF);
+
+	/* de-assert chip select */
+    digitalWrite(CHIP_CS_XM, HIGH);
+	return value;
+}
+
 void SensMAG::readBuffer(uint8_t addr, uint8_t *buffer, uint8_t len) {
     digitalWrite(CHIP_CS_XM, LOW); // Initiate communication
-	_spiObj->transfer(addr | 0x80 | 0x40);
-    for (uint8_t i = 0; i < len; ++i){
-    	buffer[i] = _spiObj->transfer(0xFF);
-    }
+	//_spiObj->transfer(addr | 0x80 | 0x40);
+    //for (uint8_t i = 0; i < len; ++i){
+    	//	buffer[i] = _spiObj->transfer(0xFF);
+    //}
+    _spiObj->transfer(addr | 0x80);
+    _spiObj->transfer(NULL, buffer, len);
     digitalWrite(CHIP_CS_XM, HIGH); // Close communication
 }
 
@@ -92,7 +108,7 @@ void SensMAG::writeBuffer(uint8_t addr, uint8_t *buffer, uint8_t len) {
     digitalWrite(CHIP_CS_XM, LOW); // Initiate communication
     _spiObj->transfer(addr & 0x7F);
     for (int i = 0; i < len; ++i){
-    	_spiObj->transfer(buffer[i]);
+    		_spiObj->transfer(buffer[i]);
     }
     digitalWrite(CHIP_CS_XM, HIGH); // Close communication
 }
@@ -109,8 +125,7 @@ void SensMAG::initMag(){
 void SensMAG::setMagScale(mag_scale mScl)
 {
     // We need to preserve the other bytes in CTRL_REG6_XM. So, first read it:
-    uint8_t temp;
-    readRegister(LSM9DS0_REGISTER_CTRL_REG6_XM, &temp);
+	temp = readRegister(LSM9DS0_REGISTER_CTRL_REG6_XM);
     // Then mask out the mag scale bits:
     temp &= 0xFF^(0x3 << 5);
     // Then shift in our new scale bits:
@@ -125,8 +140,7 @@ void SensMAG::setMagScale(mag_scale mScl)
 
 void SensMAG::setMagODR(mag_odr mRate){
     // We need to preserve the other bytes in CTRL_REG5_XM. So, first read it:
-    uint8_t temp;
-    readRegister(LSM9DS0_REGISTER_CTRL_REG5_XM, &temp);
+    uint8_t temp = readRegister(LSM9DS0_REGISTER_CTRL_REG5_XM);
     // Then mask out the mag ODR bits:
     temp &= 0xFF^(0x7 << 2);
     // Then shift in our new ODR bits:
@@ -146,15 +160,14 @@ void SensMAG::onSpiResourceGranted() {
 			//initMag();
 			writeRegister(LSM9DS0_REGISTER_CTRL_REG7_XM, 0x00); // Continuous conversion mode
 			//setMagODR(mRate);
-			//setMagScale(mScale);
+			//setMagScale(mScale);							   // Possible fix is using the transer
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
 			break;
 		case S_STOP:
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
 			break;
 		case S_XM_CHIP_ID:
-			readRegister(LSM9DS0_REGISTER_WHO_AM_I_XM, &lsm9ds0_buffer[0x00]);
-			lsm9ds0_xm_id = lsm9ds0_buffer[0x00];
+			lsm9ds0_xm_id = readRegister(LSM9DS0_REGISTER_WHO_AM_I_XM);
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
 			break;
 		case S_READ:
