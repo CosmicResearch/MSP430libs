@@ -2,7 +2,7 @@
 #define __LSM9DS0_H__
 
 #define GYROTYPE                           (true)
-#define LSM9DS0_DELAY    (50)    // in msec
+#define LSM9DS0_G_CSN					   (3)
 
 //#define LSM9DS0_ADDRESS_GYRO               (0x6B)         // D6 >> 1 = 7bit default
 //#define LSM9DS0_G_ID                       (0b11010100)
@@ -25,14 +25,6 @@ const uint8_t LSM9DS0_REGISTER_OUT_Z_H_G           = 0x2D;
 const uint8_t LSM9DS0_GYRO_DPS_DIGIT_245DPS        = (0b00 << 4);  // +/- 245 degrees per second rotation
 const uint8_t LSM9DS0_GYRO_DPS_DIGIT_500DPS        = (0b01 << 4);  // +/- 500 degrees per second rotation
 const uint8_t LSM9DS0_GYRO_DPS_DIGIT_2000DPS       = (0b10 << 4);  // +/- 2000 degrees per second rotation
-
-struct lsm9ds0gyro_state_t;
-
-struct lsm9ds0gyro_data_t : sensor_data_t {
-	float_t x;
-	float_t y;
-	float_t z;
-};
 
 typedef enum
 {
@@ -59,17 +51,26 @@ typedef enum {							// ODR (Hz) --- Cutoff
 		G_ODR_760_BW_100 = 0xF, //   760         100
 } lsm9ds0gyro_odr_t;
 
+struct lsm9ds0gyro_state_t;
+
+struct lsm9ds0gyro_data_t : sensor_data_t {
+	int16_t x;
+	int16_t y;
+	int16_t z;
+};
+
 class SensLSM9DS0Gyro : public SensorClient {
 	private:
 		static lsm9ds0gyro_state_t _state;
         static lsm9ds0gyro_data_t _data;
-
 		static Resource *_spiResource;
 		static SPI *_spiObj;
+
 		static float _gyro_dps_digit;
 
 		static uint8_t readRegister(uint8_t reg);
 		static void writeRegister(uint8_t reg, uint8_t value);
+		static void initGyro();
 
 		static void ((*_onStartDone)(error_t));
 		static void ((*_onStopDone)(error_t));
@@ -77,11 +78,11 @@ class SensLSM9DS0Gyro : public SensorClient {
 
 		static void onSpiResourceGranted(void);
 		static void onSpiTransferDone(uint8_t*, uint8_t*, uint16_t, error_t);
-		static void onDataReady(void);
 		static void onSignalDoneTask(void *);
 		
 	public:
-		SensLSM9DS0Gyro(SPI *spi, Resource *resource, const lsm9ds0gyro_scale_t scale);
+		SensLSM9DS0Gyro(SPI *spi, Resource *resource,
+				const lsm9ds0gyro_scale_t scale, const lsm9ds0gyro_odr_t rate);
 
 		virtual error_t start(void);
         virtual error_t stop(void);
@@ -90,9 +91,11 @@ class SensLSM9DS0Gyro : public SensorClient {
         virtual boolean_t isStarted(void);
         
         /** setter & getters */
-        void setScale(lsm9ds0gyro_scale_t scale);
-        void setODRate(lsm9ds0gyro_odr_t gRate);
-        
+        static void setScale(lsm9ds0gyro_scale_t scale);
+        static void setODRate(lsm9ds0gyro_odr_t gRate);
+        static float getDPS();
+        static error_t getData(lsm9ds0gyro_data_t data, float_t gyro_x, float_t gyro_y, float_t gyro_z);
+
         /** callbacks */
         virtual void attachStartDone(void (*)(error_t));
 		virtual void attachStopDone(void (*)(error_t));
