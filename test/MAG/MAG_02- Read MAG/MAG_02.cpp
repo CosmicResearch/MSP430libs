@@ -46,11 +46,13 @@ void onStartDone(error_t result){
 }
 
 void onReadDone(sensor_data_t* data, error_t result) {
+	int16_t xhi, yhi, zhi;
+	MAG.getMagnetism(&xhi, &yhi, &zhi);
     if (result == SUCCESS) {
         Debug.println("done");
-        Debug.print("x: ").println(data->x);
-        Debug.print("y: ").println(data->y);
-        Debug.print("z: ").println(data->z);
+        Debug.print("x: ").println(xhi);
+        Debug.print("y: ").println(yhi);
+        Debug.print("z: ").println(zhi);
 
 		delay(1000);
 		MAG.read();

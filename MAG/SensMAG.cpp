@@ -65,12 +65,12 @@ void SensMAG::calcmRes(){
     		(float_t) (mScale << 2) / 32768.0;
 }
 
-void SensMAG::readRegister(uint8_t addr, uint8_t *data){
+/*void SensMAG::readRegister(uint8_t addr, uint8_t *data){
     digitalWrite(CHIP_CS_XM, LOW); // Initiate communication
 	_spiObj->transfer((addr & 0x3F) | 0x80);
 	*data = _spiObj->transfer(0xFF);
     digitalWrite(CHIP_CS_XM, HIGH); // Close communication
-}
+}*/
 
 uint8_t SensMAG::readRegister(uint8_t reg) {
 	uint8_t value;
@@ -124,6 +124,7 @@ void SensMAG::initMag(){
 
 void SensMAG::setMagScale(mag_scale mScl)
 {
+	uint8_t temp;
     // We need to preserve the other bytes in CTRL_REG6_XM. So, first read it:
 	temp = readRegister(LSM9DS0_REGISTER_CTRL_REG6_XM);
     // Then mask out the mag scale bits:
@@ -157,7 +158,6 @@ void SensMAG::onSpiResourceGranted() {
 
     switch(_state.req) {
 		case S_START:
-			//initMag();
 			writeRegister(LSM9DS0_REGISTER_CTRL_REG7_XM, 0x00); // Continuous conversion mode
 			//setMagODR(mRate);
 			//setMagScale(mScale);							   // Possible fix is using the transer
