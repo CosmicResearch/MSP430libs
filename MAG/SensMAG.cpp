@@ -16,18 +16,12 @@ struct lsm9ds0_state_t {
     lsm9ds0_req_t req;
 };
 
-struct lsm9ds0_data_t : sensor_data_t {
-    int16_t x;
-    int16_t y;
-    int16_t z;
-    //int32_t u_temp;
-};
 
 uint8_t lsm9ds0_buffer[24] =  { 0 };
 uint8_t lsm9ds0_xm_id;
 
 lsm9ds0_state_t SensMAG::_state = {false, false, S_IDLE };
-lsm9ds0_data_t SensMAG::_data;
+lsm9ds0_data_t SensMAG::_data = lsm9ds0_data_t();
 Resource *SensMAG::_spiResource = NULL;
 SPI *SensMAG::_spiObj = NULL;
 
@@ -56,6 +50,7 @@ SensMAG::SensMAG(SPI *spi, Resource *resource, mag_scale mScl, mag_odr mOdr){
     _data.x = 0;
     _data.y = 0;
     _data.z = 0;
+    _data.u_temp = 0;
 }
 
 /* Private Methods ************************************************************/
@@ -158,10 +153,12 @@ void SensMAG::onSpiResourceGranted() {
 
     switch(_state.req) {
 		case S_START:
-			writeRegister(LSM9DS0_REGISTER_CTRL_REG7_XM, 0x00); // Continuous conversion mode
-			//setMagODR(mRate);
-			//setMagScale(mScale);							   // Possible fix is using the transer
+			//writeRegister(LSM9DS0_REGISTER_CTRL_REG7_XM, 0x00); // Continuous conversion mode
+			initMag();
+			setMagODR(mRate);
+			setMagScale(mScale);							   // Possible fix is using the transer
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
+			//readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
 			break;
 		case S_STOP:
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
@@ -171,6 +168,9 @@ void SensMAG::onSpiResourceGranted() {
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
 			break;
 		case S_READ:
+			_data.u_temp = readRegister(LSM9DS0_REGISTER_TEMP_OUT_H_XM);
+			_data.u_temp <<= 8;
+			_data.u_temp |= readRegister(LSM9DS0_REGISTER_TEMP_OUT_L_XM);
 			readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
 			break;
 		case S_CALIB:
@@ -180,6 +180,7 @@ void SensMAG::onSpiResourceGranted() {
 			writeRegister(LSM9DS0_REGISTER_OFFSET_Y_H_M, (uint8_t)((*_calibY & 0xFF00) >> 8));
 			writeRegister(LSM9DS0_REGISTER_OFFSET_Z_L_M, (uint8_t)(*_calibZ & 0xFF));
 			writeRegister(LSM9DS0_REGISTER_OFFSET_Z_H_M, (uint8_t)((*_calibZ & 0xFF00) >> 8));
+			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
 			break;
 		case S_IDLE:
 	default:
@@ -261,12 +262,12 @@ void SensMAG::onSignalDoneTask(void *param) {
 					/* notify stop event */
 					_onStopDone(result);
     			}
-			break;
+    			break;
     		case S_XM_CHIP_ID:
-			if (_onRequestAccelMagIdDone){
-				_onRequestAccelMagIdDone(&lsm9ds0_xm_id, result);
-			}
-			break;
+				if (_onRequestAccelMagIdDone){
+					_onRequestAccelMagIdDone(&lsm9ds0_xm_id, result);
+				}
+				break;
     		case S_READ:
     			if (_onReadDone) {
     				_onReadDone((sensor_data_t*)&_data, result);
@@ -276,6 +277,7 @@ void SensMAG::onSignalDoneTask(void *param) {
     			if (_onCalibrationDone){
     				_onCalibrationDone(result);
     			}
+    			break;
 		case S_IDLE:
 		default:
 			break;

@@ -45,14 +45,19 @@ void onStartDone(error_t result){
 	}
 }
 
-void onReadDone(sensor_data_t* data, error_t result) {
+void onReadDone(sensor_data_t* data_t, error_t result) {
 	int16_t xhi, yhi, zhi;
-	MAG.getMagnetism(&xhi, &yhi, &zhi);
+	lsm9ds0_data_t* data = (lsm9ds0_data_t*) data_t;
+	xhi = data->x;
+	yhi = data->y;
+	zhi = data->z;
+	//MAG.getMagnetism(&xhi, &yhi, &zhi);
     if (result == SUCCESS) {
         Debug.println("done");
         Debug.print("x: ").println(xhi);
         Debug.print("y: ").println(yhi);
         Debug.print("z: ").println(zhi);
+        Debug.print("Temperature: ").print(data->u_temp).println("Cº");
 
 		delay(1000);
 		MAG.read();
