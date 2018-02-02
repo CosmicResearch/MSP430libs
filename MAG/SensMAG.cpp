@@ -168,9 +168,10 @@ void SensMAG::onSpiResourceGranted() {
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
 			break;
 		case S_READ:
-			_data.u_temp = readRegister(LSM9DS0_REGISTER_TEMP_OUT_H_XM);
-			_data.u_temp <<= 8;
-			_data.u_temp |= readRegister(LSM9DS0_REGISTER_TEMP_OUT_L_XM);
+			uint8_t aux1, aux2;
+			aux1 = readRegister(LSM9DS0_REGISTER_TEMP_OUT_L_XM);
+			aux2 = readRegister(LSM9DS0_REGISTER_TEMP_OUT_H_XM);
+	        _data.u_temp = 21.0 + ((((int16_t) aux2 << 12) | aux1 << 4 ) >> 4) / 8; // Temperature is a 12-bit signed integer, 21 is guess of the intercept
 			readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
 			break;
 		case S_CALIB:
