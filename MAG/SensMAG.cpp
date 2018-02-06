@@ -87,7 +87,7 @@ void SensMAG::readBuffer(uint8_t addr, uint8_t *buffer, uint8_t len) {
     //for (uint8_t i = 0; i < len; ++i){
     	//	buffer[i] = _spiObj->transfer(0xFF);
     //}
-    _spiObj->transfer(addr | 0x80);
+    _spiObj->transfer(addr | 0x80 | 0x40);
     _spiObj->transfer(NULL, buffer, len);
     digitalWrite(CHIP_CS_XM, HIGH); // Close communication
 }
@@ -173,6 +173,12 @@ void SensMAG::onSpiResourceGranted() {
 			aux2 = readRegister(LSM9DS0_REGISTER_TEMP_OUT_H_XM);
 	        _data.u_temp = 21.0 + ((((int16_t) aux2 << 12) | aux1 << 4 ) >> 4) / 8; // Temperature is a 12-bit signed integer, 21 is guess of the intercept
 			readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
+
+	        //digitalWrite(CHIP_CS_XM, LOW); // Initiate communication
+	        //_spiObj->transfer(LSM9DS0_REGISTER_OUT_X_L_M | 0x80 | 0x40);
+	        //_spiObj->transfer(NULL, lsm9ds0_buffer, 6);
+	        //digitalWrite(CHIP_CS_XM, HIGH); // Close communication
+
 			break;
 		case S_CALIB:
 			writeRegister(LSM9DS0_REGISTER_OFFSET_X_L_M, (uint8_t)(*_calibX & 0xFF));
@@ -200,17 +206,9 @@ void SensMAG::onSpiTranferDone(uint8_t* tx_buf, uint8_t* rx_buf, uint16_t len, e
     			break;
     		case S_READ:
     			if (result == SUCCESS){
-					_data.x = rx_buf[1]; // xhi
-					_data.x <<= 8;
-					_data.x |= rx_buf[0]; //xlo
-
-					_data.y |= rx_buf[3]; //yhi
-					_data.y <<= 8;
-					_data.y = rx_buf[2]; //ylo
-
-					_data.z |= rx_buf[5]; //zlo
-					_data.z <<= 8;
-					_data.z |= rx_buf[4]; //zhi
+					_data.x = ((rx_buf[1] << 8) | rx_buf[0]);
+					_data.y = ((rx_buf[3] << 8) | rx_buf[2]);
+					_data.z = ((rx_buf[5] << 8) | rx_buf[4]);
     			}
     			postTask(onSignalDoneTask, (void*)(uint16_t)result);
     			break;
