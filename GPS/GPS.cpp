@@ -74,11 +74,11 @@ error_t GPS::stop() {
 }
 
 error_t GPS::read() {
-    return ERROR;
+    return SUCCESS;
 }
 
 error_t GPS::readNow() {
-    return ERROR;
+    return SUCCESS;
 }
 
 boolean_t GPS::isStarted() {
