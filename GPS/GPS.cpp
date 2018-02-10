@@ -261,7 +261,7 @@ bool GPS::processLine(char* line, gps_data_t* data) {
     else if (strcmp(messageType, "GLL") == 0) {
         return processGLLLine(line, data);
     }
-    return false;
+    return true;
 }
 
 bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
@@ -476,11 +476,13 @@ void GPS::onSignalDoneTask(void* param) {
         return;
     }
     else  {
-        GPS::lastData = *gps_data;
+        if (gps_data != NULL) {
+            GPS::lastData = *gps_data;
+        }
         if (onReadDone != NULL) {
             onReadDone(gps_data, SUCCESS);
         }
-        else {
+        else if (gps_data != NULL){
             delete gps_data;
         }
     }
