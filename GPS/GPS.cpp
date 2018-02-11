@@ -265,6 +265,7 @@ bool GPS::processLine(char* line, gps_data_t* data) {
 }
 
 bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
+    char* line = GGALine;
     GGALine += 7;
     data->type = "GGA";
     if (*GGALine != ',') {
@@ -335,12 +336,16 @@ bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
         GGALine++;
         data->altitude = -1;
     }
-    delete GGALine;
+#ifndef __TEST__
+    if (line != NULL)
+        delete line;
+#endif
     return true;
 
 }
 
 bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
+    char* line = GLLLine;
     GLLLine+=7;
     data->type = "GLL";
     if (*GLLLine != ',') {
@@ -383,11 +388,15 @@ bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
         data->seconds = 0;
     }
     data->fix = (*GLLLine=='A'); GLLLine++; GLLLine++;
-    delete GLLLine;
+#ifndef __TEST__
+    if (line != NULL)
+        delete line;
+#endif
     return true;
 }
 
 bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
+    char* line = RMCLine;
     data->type = "RMC";
     RMCLine += 7;
     if (*RMCLine != ',') {
@@ -462,7 +471,10 @@ bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
         data->magvariation = 0.0f;
     }
     data->altitude = -1;
-    delete RMCLine;
+#ifndef __TEST__
+    if (line != NULL)
+        delete line;
+#endif
     return true;
 }
 
@@ -470,9 +482,10 @@ void GPS::onSignalDoneTask(void* param) {
     gps_data_t* gps_data = new gps_data_t;
     bool correct = processLine((char*)GPS::state.lastLine, gps_data);
     if (!correct) {
-        if (onReadDone)
+        if (onReadDone != NULL)
             onReadDone(NULL, ERROR);
-        delete gps_data;
+        if (gps_data != NULL)
+            delete gps_data;
         return;
     }
     else  {
