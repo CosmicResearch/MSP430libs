@@ -1,0 +1,1 @@
+"./MAG_01.o" "./main.o" -Wl,--start-group -l"m" -l"c" -l"gcc" -Wl,--end-group 
