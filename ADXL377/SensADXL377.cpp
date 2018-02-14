@@ -23,7 +23,7 @@ void ((*SensADXL377::_onReadDone)(sensor_data_t *, error_t)) = NULL;
 read_state_t SensADXL377::readState = {false, false, false};
 adxl377_data_t SensADXL377::_data = adxl377_data_t();
 adxl377_calib_t SensADXL377::_calib = {0,0,0};
-SensADC SensADXL377::_adcx = SensADC(
+SensADC* SensADXL377::_adcx = NULL; /* SensADC(
 		ADC_CHANNEL_1,
 		REFERENCE_AVcc_AVss,
 		REFVOLT_LEVEL_NONE,
@@ -31,8 +31,8 @@ SensADC SensADXL377::_adcx = SensADC(
 		SHT_CLOCK_DIV_1,
 		SAMPLE_HOLD_4_CYCLES,
 		SAMPCON_SOURCE_SMCLK,
-		SAMPCON_CLOCK_DIV_1);
-SensADC SensADXL377::_adcy = SensADC(
+		SAMPCON_CLOCK_DIV_1);*/
+SensADC* SensADXL377::_adcy = NULL; /*SensADC(
 		ADC_CHANNEL_2,
 		REFERENCE_AVcc_AVss,
 		REFVOLT_LEVEL_NONE,
@@ -40,8 +40,8 @@ SensADC SensADXL377::_adcy = SensADC(
 		SHT_CLOCK_DIV_1,
 		SAMPLE_HOLD_4_CYCLES,
 		SAMPCON_SOURCE_SMCLK,
-		SAMPCON_CLOCK_DIV_1);
-SensADC SensADXL377::_adcz = SensADC(
+		SAMPCON_CLOCK_DIV_1);*/
+SensADC* SensADXL377::_adcz = NULL;/* SensADC(
 		ADC_CHANNEL_3,
 		REFERENCE_AVcc_AVss,
 		REFVOLT_LEVEL_NONE,
@@ -49,7 +49,7 @@ SensADC SensADXL377::_adcz = SensADC(
 		SHT_CLOCK_DIV_1,
 		SAMPLE_HOLD_4_CYCLES,
 		SAMPCON_SOURCE_SMCLK,
-		SAMPCON_CLOCK_DIV_1);
+		SAMPCON_CLOCK_DIV_1);*/
 
 /* Constructors ***************************************************************/
 SensADXL377::SensADXL377(/*uint16_t inchx,
@@ -62,7 +62,7 @@ SensADXL377::SensADXL377(/*uint16_t inchx,
 		uint16_t sht,
 		uint16_t sampcon_ssel,
 		uint16_t sampcon_id*/
-		SensADC x, SensADC y, SensADC z) {
+		SensADC* x, SensADC* y, SensADC* z) {
 
 	SensADXL377::_adcx = x;
 	SensADXL377::_adcy = y;
@@ -150,9 +150,9 @@ void SensADXL377::notifyIfNecessary() {
 error_t SensADXL377::start() {
 
 	if (!started) {
-		SensADXL377::_adcx.attachCallback(onSingleDataReadyChannelx);
-		SensADXL377::_adcy.attachCallback(onSingleDataReadyChannely);
-		SensADXL377::_adcz.attachCallback(onSingleDataReadyChannelz);
+		SensADXL377::_adcx->attachCallback(onSingleDataReadyChannelx);
+		SensADXL377::_adcy->attachCallback(onSingleDataReadyChannely);
+		SensADXL377::_adcz->attachCallback(onSingleDataReadyChannelz);
 		started = true;
 		if (_onStartDone) {
 			_onStartDone(SUCCESS);
@@ -190,13 +190,13 @@ error_t SensADXL377::read(){
 	}
 	error_t ret;
 		// Start new conversion channel[0..2].
-	if ((ret = SensADXL377::_adcx.read()) != SUCCESS) {
+	if ((ret = SensADXL377::_adcx->read()) != SUCCESS) {
 		return ret;
 	}
-	if (( ret = SensADXL377::_adcy.read()) != SUCCESS) {
+	if (( ret = SensADXL377::_adcy->read()) != SUCCESS) {
 		return ret;
 	}
-	if (( ret = SensADXL377::_adcz.read()) != SUCCESS) {
+	if (( ret = SensADXL377::_adcz->read()) != SUCCESS) {
 		return ret;
 	}
 	SensADXL377::readState = {false, false, false};

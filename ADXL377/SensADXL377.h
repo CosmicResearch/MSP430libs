@@ -41,9 +41,9 @@ struct read_state_t {
 
 class SensADXL377 : SensorClient{
 	private:
-		static SensADC _adcx;
-		static SensADC _adcy;
-		static SensADC _adcz;
+		static SensADC* _adcx;
+		static SensADC* _adcy;
+		static SensADC* _adcz;
 		static adxl377_data_t _data;
 		static adxl377_calib_t _calib;
 		static read_state_t readState;
@@ -60,7 +60,7 @@ class SensADXL377 : SensorClient{
 		static boolean onSingleDataReadyChannelz(uint16_t data, error_t result);
 
 	public:
-		SensADXL377(SensADC x, SensADC y, SensADC z);
+		SensADXL377(SensADC* x, SensADC* y, SensADC* z);
 
 		virtual error_t start(void);
 		error_t read(void);
