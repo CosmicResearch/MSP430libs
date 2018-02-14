@@ -29,6 +29,7 @@ void ((*GPS::onReadDone)(sensor_data_t*, error_t)) = NULL;
 void ((*GPS::onStartDone)(error_t)) = NULL;
 void ((*GPS::onStopDone)(error_t)) = NULL;
 
+
 /*
 PUBLIC METHODS
 */
@@ -73,11 +74,11 @@ error_t GPS::stop() {
 }
 
 error_t GPS::read() {
-    return ERROR;
+    return SUCCESS;
 }
 
 error_t GPS::readNow() {
-    return ERROR;
+    return SUCCESS;
 }
 
 boolean_t GPS::isStarted() {
@@ -210,8 +211,8 @@ uint32_t GPS::stringToFloatIn100ths(char* &c) {
     if (*c++ == '.') {
         uint8_t multiplier = 10;
         while (*c >= '0' && *c <= '9' && multiplier >= 1) {
-            ret += multiplier * (*c - '0');
-            multiplier /= 10;
+            ret = ret + multiplier * (*c - '0');
+            multiplier = multiplier / 10;
             ++c;
         }
     }
@@ -254,46 +255,226 @@ bool GPS::processLine(char* line, gps_data_t* data) {
     if(strcmp(messageType,"GGA") == 0) {
         return processGGALine(line, data);
     }
-    if (strcmp(messageType, "RMC") == 0) {
+    else if (strcmp(messageType, "RMC") == 0) {
         return processRMCLine(line, data);
     }
-    return false;
+    else if (strcmp(messageType, "GLL") == 0) {
+        return processGLLLine(line, data);
+    }
+    return true;
 }
 
 bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
+    char* line = GGALine;
     GGALine += 7;
-    data->hour = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
-    data->minute = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
-    data->seconds = uint8_t(stringToFloat(GGALine)); GGALine++;
-    data->latitude = stringToDegreesIn1000000ths(GGALine); GGALine++;
-    data->latitudeChar = *GGALine++; GGALine++;
-    data->longitude = stringToDegreesIn1000000ths(GGALine); GGALine++;
-    data->longitudeChar = *GGALine++; GGALine++;
-    data->fixQuality = charIntToInt(*GGALine++); GGALine++;
-    data->fix = (data->fixQuality > 0 && data->fixQuality < 6);
-    data->satellites = stringToInt(GGALine); GGALine++;
-    data->HDOP = stringToFloat(GGALine); GGALine++;
-    data->altitude = stringToFloatIn100ths(GGALine); GGALine++;
+    data->type = "GGA";
+    if (*GGALine != ',') {
+        data->hour = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
+        data->minute = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
+        data->seconds = uint8_t(stringToFloat(GGALine)); GGALine++;
+    }
+    else {
+        GGALine++;
+        data->hour = 0;
+        data->minute = 0;
+        data->seconds = 0;
+    }
+    if (*GGALine != ',') {
+        data->latitude = stringToDegreesIn1000000ths(GGALine); GGALine++;
+    }
+    else {
+        GGALine++;
+        data->latitude = 0;
+    }
+    if (*GGALine != ',') {
+        data->latitudeChar = *GGALine++; GGALine++;
+    }
+    else {
+        GGALine++;
+        data->latitudeChar = 'N';
+    }
+    if (*GGALine != ',') {
+        data->longitude = stringToDegreesIn1000000ths(GGALine); GGALine++;
+    }
+    else {
+        GGALine++;
+        data->longitude = 0;
+    }
+    if (*GGALine != ',') {
+        data->longitudeChar = *GGALine++; GGALine++;
+    }
+    else {
+        GGALine++;
+        data->longitudeChar = 'E';
+    }
+    if (*GGALine != ',') {
+        data->fixQuality = charIntToInt(*GGALine++); GGALine++;
+        data->fix = (data->fixQuality > 0 && data->fixQuality < 6);
+    }
+    else {
+        GGALine++;
+        data->fix = false;
+    }
+    if (*GGALine != ',') {
+        data->satellites = stringToInt(GGALine); GGALine++;
+    }
+    else {
+        GGALine++;
+        data->satellites = 0;
+    }
+    if (*GGALine != ',') {
+        data->HDOP = stringToFloat(GGALine); GGALine++;
+    }
+    else {
+        GGALine++;
+        data->HDOP = 0;
+    }
+    if (*GGALine != ',') {
+        data->altitude = stringToFloatIn100ths(GGALine); GGALine++;
+    }
+    else {
+        GGALine++;
+        data->altitude = -1;
+    }
+#ifndef __TEST__
+    if (line != NULL)
+        delete line;
+#endif
+    return true;
+
+}
+
+bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
+    char* line = GLLLine;
+    GLLLine+=7;
+    data->type = "GLL";
+    if (*GLLLine != ',') {
+        data->latitude = stringToDegreesIn1000000ths(GLLLine); GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->latitude = 0;
+    }
+    if (*GLLLine != ',') {
+        data->latitudeChar = *GLLLine++; GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->latitudeChar = 'N';
+    }
+    if (*GLLLine != ',') {
+        data->longitude = stringToDegreesIn1000000ths(GLLLine); GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->longitude = 0;
+    }
+    if (*GLLLine != ',') {
+        data->longitudeChar = *GLLLine++; GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->longitudeChar = 'E';
+    }
+    if (*GLLLine != ',') {
+            data->hour = charIntToInt(*GLLLine++)*10 + charIntToInt(*GLLLine++);
+            data->minute = charIntToInt(*GLLLine++)*10 + charIntToInt(*GLLLine++);
+            data->seconds = uint8_t(stringToFloat(GLLLine)); GLLLine++;
+    }
+    else {
+        GLLLine++;
+        data->hour = 0;
+        data->minute = 0;
+        data->seconds = 0;
+    }
+    data->fix = (*GLLLine=='A'); GLLLine++; GLLLine++;
+#ifndef __TEST__
+    if (line != NULL)
+        delete line;
+#endif
     return true;
 }
 
 bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
+    char* line = RMCLine;
+    data->type = "RMC";
     RMCLine += 7;
-    data->hour = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
-    data->minute = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
-    data->seconds = uint8_t(stringToFloat(RMCLine)); RMCLine++;
-    data->fix = (*RMCLine=='A')?true:false; RMCLine++; RMCLine++;
-    data->latitude = stringToDegreesIn1000000ths(RMCLine); RMCLine++;
-    data->latitudeChar = *RMCLine++; RMCLine++;
-    data->longitude = stringToDegreesIn1000000ths(RMCLine); RMCLine++;
-    data->longitudeChar = *RMCLine++; RMCLine++;
-    data->speed = stringToFloat(RMCLine); RMCLine++;
-    data->angle = stringToFloat(RMCLine); RMCLine++;
-    data->day = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
-    data->month = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
-    data->year = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++); RMCLine++;
-    data->magvariation = stringToFloat(RMCLine); RMCLine++;
+    if (*RMCLine != ',') {
+        data->hour = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
+        data->minute = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
+        data->seconds = uint8_t(stringToFloat(RMCLine)); RMCLine++;
+    }
+    else {
+        RMCLine++;
+        data->hour = 0;
+        data->minute = 0;
+        data->seconds = 0;
+    }
+    data->fix = (*RMCLine=='A'); RMCLine++; RMCLine++;
+    if (*RMCLine != ',') {
+        data->latitude = stringToDegreesIn1000000ths(RMCLine); RMCLine++;
+    }
+    else {
+        RMCLine++;
+        data->latitude = 0;
+    }
+    if (*RMCLine != ',') {
+        data->latitudeChar = *RMCLine++; RMCLine++;
+    }
+    else {
+        RMCLine++;
+        data->latitudeChar = 'N';
+    }
+    if (*RMCLine != ',') {
+        data->longitude = stringToDegreesIn1000000ths(RMCLine); RMCLine++;
+    }
+    else {
+        RMCLine++;
+        data->longitude = 0;
+    }
+    if (*RMCLine != ',') {
+        data->longitudeChar = *RMCLine++; RMCLine++;
+    }
+    else {
+        RMCLine++;
+        data->longitudeChar = 'E';
+    }
+    if (*RMCLine != ',') {
+        data->speed = stringToFloat(RMCLine); RMCLine++;
+    }
+    else {
+        RMCLine++;
+        data->speed = 0.0f;
+    }
+    if (*RMCLine != ',') {
+        data->angle = stringToFloat(RMCLine); RMCLine++;
+    }
+    else {
+        RMCLine++;
+        data->angle = 0.0f;
+    }
+    if (*RMCLine != ',') {
+        data->day = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
+        data->month = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
+        data->year = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++); RMCLine++;
+    }
+    else {
+        RMCLine++;
+        data->day = 0;
+        data->month = 0;
+        data->year = 0;
+    }
+    if (*RMCLine != ',') {
+        data->magvariation = stringToFloat(RMCLine); RMCLine++;
+    }
+    else {
+        data->magvariation = 0.0f;
+    }
     data->altitude = -1;
+#ifndef __TEST__
+    if (line != NULL)
+        delete line;
+#endif
     return true;
 }
 
@@ -301,14 +482,23 @@ void GPS::onSignalDoneTask(void* param) {
     gps_data_t* gps_data = new gps_data_t;
     bool correct = processLine((char*)GPS::state.lastLine, gps_data);
     if (!correct) {
-        if (onReadDone)
+        if (onReadDone != NULL)
             onReadDone(NULL, ERROR);
+        if (gps_data != NULL)
+            delete gps_data;
         return;
     }
     else  {
-        GPS::lastData = *gps_data;
-        if (onReadDone != NULL)
+        if (gps_data != NULL) {
+            GPS::lastData = *gps_data;
+        }
+        if (onReadDone != NULL) {
             onReadDone(gps_data, SUCCESS);
+        }
+        else if (gps_data != NULL){
+            delete gps_data;
+        }
     }
     return;
 }
+

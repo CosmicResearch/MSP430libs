@@ -17,6 +17,7 @@
  */
 
 #include <iostream>
+#include "Senscape.h"
 
 #ifndef SERIAL
 #define SERIAL
