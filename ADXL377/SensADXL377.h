@@ -10,32 +10,33 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
     You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.aaaaa
 */
+
 
 #ifndef SENSCAPE_ADXL377_H_
 #define SENSCAPE_ADXL377_H_
+#include "Senscape.h"
 #include "SensADC.h"
 
 /* Chip ID Definition */
-const uint8_t ADXL377_CHIP_ID = 0x59;
-
+//const uint8_t ADXL377_CHIP_ID = 0x59;
 
 struct adxl377_data_t : sensor_data_t{
-	int32_t _chanx;
-	int32_t _chany;
-	int32_t _chanz;
-};
-
-struct adxl377_calib_t {
 	int16_t _chanx;
 	int16_t _chany;
 	int16_t _chanz;
 };
 
+struct adxl377_calib_t {
+	uint16_t _chanx;
+	uint16_t _chany;
+	uint16_t _chanz;
+};
+
 struct read_state_t {
 	boolean_t x, y, z;
-}
+};
 
 
 class SensADXL377 : SensorClient{
@@ -59,17 +60,9 @@ class SensADXL377 : SensorClient{
 		static boolean onSingleDataReadyChannelz(uint16_t data, error_t result);
 
 	public:
-		SensADXL377(uint16_t inchx,
-				uint16_t inchy,
-				uint16_t inchz,
-				uint16_t sref,
-				uint16_t ref2_5v,
-				uint16_t ssel,
-				uint16_t div,
-				uint16_t sht,
-				uint16_t sampcon_ssel,
-				uint16_t sampcon_id);
+		SensADXL377(SensADC x, SensADC y, SensADC z);
 
+		virtual error_t start(void);
 		error_t read(void);
 		error_t stop(void);
 		error_t readNow(void);
