@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := C:/Senscape/CosmicResearch/cosmic/tools/msp430
+CG_TOOL_ROOT := C:/Senscape/CosmicResearch/firmware/tools/msp430
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -143,13 +143,13 @@ all: GYRO_01.out
 GYRO_01.out: $(OBJS) $(LD_SRCS) $(A_SRCS) $(GEN_CMDS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GNU Linker'
-	"C:/Senscape/CosmicResearch/cosmic/tools/msp430/bin/msp430-gcc.exe" -mcpu=430x -mmcu=msp430f2617 -Os -g -gdwarf-3 -gstrict-dwarf -Wall -Wl,-Map,"GYRO_01.map" -L"C:/ti/ccsv6/ccs_base/msp430/include_gcc" -o"GYRO_01.out" $(ORDERED_OBJS) $(A_SRCS)
+	"C:/Senscape/CosmicResearch/firmware/tools/msp430/bin/msp430-gcc.exe" -mmcu=msp430f2617 -DF_CPU=16000000L -DSENSCAPE=100 -Os -ffunction-sections -fdata-sections -g -gstrict-dwarf -Wall -Wl,-Map,"GYRO_01.map" -L"C:/ti/ccsv6/ccs_base/msp430/include_gcc" -o"GYRO_01.out" $(ORDERED_OBJS) $(A_SRCS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 GYRO_01.hex: $(EXE_OUTPUTS)
 	@echo 'Invoking: GNU Objcopy Utility'
-	"C:/Senscape/CosmicResearch/cosmic/tools/msp430/bin/msp430-objcopy.exe"  $(EXE_OUTPUTS__QUOTED) "GYRO_01.hex"
+	"C:/Senscape/CosmicResearch/firmware/tools/msp430/bin/msp430-objcopy.exe"  $(EXE_OUTPUTS__QUOTED) "GYRO_01.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 
