@@ -4,11 +4,8 @@
 #define GYROTYPE                           (true)
 #define LSM9DS0_G_CSN					   (3)
 
-//#define LSM9DS0_ADDRESS_GYRO               (0x6B)         // D6 >> 1 = 7bit default
-//#define LSM9DS0_G_ID                       (0b11010100)
 const uint8_t LSM9DS0_ADDRESS_GYRO = 0x6B;
 const uint8_t LSM9DS0_G_ID = 0xD4;
-/** ^^alternatives^^ */
 
 const uint8_t LSM9DS0_REGISTER_WHO_AM_I_G     	   = 0x0F;
 const uint8_t LSM9DS0_REGISTER_CTRL_REG1_G         = 0x20;
@@ -22,9 +19,9 @@ const uint8_t LSM9DS0_REGISTER_OUT_Y_L_G           = 0x2A;
 const uint8_t LSM9DS0_REGISTER_OUT_Y_H_G           = 0x2B;
 const uint8_t LSM9DS0_REGISTER_OUT_Z_L_G           = 0x2C;
 const uint8_t LSM9DS0_REGISTER_OUT_Z_H_G           = 0x2D;
-const uint8_t LSM9DS0_GYRO_DPS_DIGIT_245DPS        = (0b00 << 4);  // +/- 245 degrees per second rotation
-const uint8_t LSM9DS0_GYRO_DPS_DIGIT_500DPS        = (0b01 << 4);  // +/- 500 degrees per second rotation
-const uint8_t LSM9DS0_GYRO_DPS_DIGIT_2000DPS       = (0b10 << 4);  // +/- 2000 degrees per second rotation
+//const uint8_t LSM9DS0_GYRO_DPS_DIGIT_245DPS        = (0b00 << 4);  // +/- 245 degrees per second rotation
+//const uint8_t LSM9DS0_GYRO_DPS_DIGIT_500DPS        = (0b01 << 4);  // +/- 500 degrees per second rotation
+//const uint8_t LSM9DS0_GYRO_DPS_DIGIT_2000DPS       = (0b10 << 4);  // +/- 2000 degrees per second rotation
 
 typedef enum
 {
@@ -94,7 +91,7 @@ class SensLSM9DS0Gyro : public SensorClient {
         static void setScale(lsm9ds0gyro_scale_t scale);
         static void setODRate(lsm9ds0gyro_odr_t gRate);
         static float getDPS();
-        static error_t getData(lsm9ds0gyro_data_t data, float_t gyro_x, float_t gyro_y, float_t gyro_z);
+        static error_t getData(float_t gyro_x, float_t gyro_y, float_t gyro_z);
 
         /** callbacks */
         virtual void attachStartDone(void (*)(error_t));
