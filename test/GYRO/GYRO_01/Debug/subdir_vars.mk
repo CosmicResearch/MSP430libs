@@ -11,7 +11,8 @@ LD_SRCS += \
 ../msp430f2617.ld 
 
 A_SRCS += \
-C:/Senscape/CosmicResearch/cosmic/hardware/msp430/cores/msp430f2617/MSP430f2617_core.a 
+C:/Senscape/CosmicResearch/firmware/hardware/msp430/cores/msp430f2617/MSP430f2617_core.a \
+../libGYRO_lib.a 
 
 OBJS += \
 ./GYRO_01.o \
@@ -34,6 +35,7 @@ CPP_SRCS__QUOTED += \
 "../main.cpp" 
 
 A_SRCS__QUOTED += \
-"C:/Senscape/CosmicResearch/cosmic/hardware/msp430/cores/msp430f2617/MSP430f2617_core.a" 
+"C:/Senscape/CosmicResearch/firmware/hardware/msp430/cores/msp430f2617/MSP430f2617_core.a" \
+"../libGYRO_lib.a" 
 
 

@@ -2,7 +2,7 @@
 #include "SensLSM9DS0Gyro.h"
 
 #define CHIP_CS		(3)
-#define CHIP_ID 	(0x0F) //TODO: Check if the SPI connection will overwrite this register when accessing it.
+#define CHIP_ID 	(0x0F)
 
 #define MAX_READINGS	10
 
@@ -18,8 +18,9 @@ void onReadDone(sensor_data_t* data, error_t result);
 uint16_t readings = MAX_READINGS;
 
 void setup(void) {
-	Debug.begin();
+		Debug.begin();
 
+		pinMode(LED_BUILDIN, OUTPUT);
 		//Debug.off();
 
 		Debug.println("Gyro_01 example - Read data (continuous mode)");
@@ -36,7 +37,10 @@ void setup(void) {
 }
 
 void loop(void) {
-
+		//digitalWrite(LED_BUILDIN, HIGH);
+		//delay(1000);
+		//digitalWrite(LED_BUILDIN, LOW);
+		//delay(1000);
 }
 
 void onStartDone(error_t error) {
@@ -60,32 +64,25 @@ void onStopDone(error_t error) {
 	}
 }
 
-void onReadDone(sensor_data_t* data, error_t error) {
-    if (error != SUCCESS) {
-        Debug.println("Error");
-    	return;
-    }
+void onReadDone(sensor_data_t* data_t, error_t error) {
+	int16_t x, y, z;
+	lsm9ds0gyro_data_t* data = (lsm9ds0gyro_data_t*) data_t;
+	x = data->x;
+	y = data->y;
+	z = data->z;
 
-    lsm9ds0gyro_data_t gyro_data = *((lsm9ds0gyro_data_t*)data);
-    float x = 0.;
-    float y = 0.;
-	float z = 0.;
-    GYRO.getData(gyro_data, x, y, z);
-    Debug.println("---------------------------------------");
-    Debug.println("new gyro data");
-    Debug.print("X axis: ").println(x);
-    Debug.print("Y axis: ").println(y);
-    Debug.print("Z axis: ").println(z);
+	if (error == SUCCESS) {
+		Debug.println("---------------------------------------");
+		Debug.println("new gyro data");
+		Debug.print("X axis: ").println(x);
+		Debug.print("Y axis: ").println(y);
+		Debug.print("Z axis: ").println(z);
 
-    if (--readings) {
-    	Debug.println();
-    	Debug.println("Reading sensor...");
-    	GYRO.read();
-    } else {
-    	Debug.println();
-    	Debug.println("Stopping sensor...");
-    	GYRO.stop();
-    }
+		delay(1000);
+		GYRO.read();
+	} else {
+		Debug.println("error");
+	}
 }
 
 

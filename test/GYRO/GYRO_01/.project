@@ -28,7 +28,7 @@
 		<link>
 			<name>MSP430f2617_core.a</name>
 			<type>1</type>
-			<locationURI>PARENT-4-PROJECT_LOC/Senscape/CosmicResearch/cosmic/hardware/msp430/cores/msp430f2617/MSP430f2617_core.a</locationURI>
+			<locationURI>PARENT-6-PROJECT_LOC/Senscape/CosmicResearch/firmware/hardware/msp430/cores/msp430f2617/MSP430f2617_core.a</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
