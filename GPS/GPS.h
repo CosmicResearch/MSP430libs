@@ -20,15 +20,15 @@
 #define BONDAR_GPS
 
 #include "Senscape.h"
-#include "Serial.h"
 #include <string.h>
+#define UBX_CFG_RATE 0
 
 struct gps_data_t : sensor_data_t {
     float speed, angle, magvariation, HDOP;
     uint8_t hour, minute, seconds;
     uint8_t day, month;
     uint16_t year;
-    int32_t latitude, longitude; //Stored in units of 1/1000000 degrees
+    uint32_t latitude, longitude; //Stored in units of 1/1000000 degrees
     char latitudeChar, longitudeChar;
     int32_t altitude; //Stored in units of 1/100 meters
     bool fix;
@@ -70,6 +70,7 @@ private:
     static bool processLine(char* line, gps_data_t *data);
     static bool processGGALine(char* GGALine, gps_data_t *data);
     static bool processRMCLine(char* RMCLine, gps_data_t *data);
+    static bool processGLLLine(char* GLLLine, gps_data_t* data);
 
     static uint8_t charHexToInt(char c);
     static uint8_t charIntToInt(char c);
@@ -84,7 +85,7 @@ private:
 
 public:
 
-    GPS(Serial *serial, uint32_t baudRate);
+    GPS(Serial* serial, const uint32_t baudRate);
 
     virtual error_t start(void);
     virtual error_t stop(void);
@@ -100,6 +101,7 @@ public:
     static void onSerialReceive(uint8_t data);
 
     static gps_data_t getLastData(void);
+
 
 };
 
