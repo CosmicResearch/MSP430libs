@@ -20,6 +20,7 @@
 #define SENSCAPE_H_
 
 #include <ctype.h>
+#include <stdint.h>
 
 #define ERROR 1
 #define SUCCESS 0
@@ -33,5 +34,6 @@ typedef unsigned char error_t;
 error_t postTask(void (*function)(void*), void *param);
 
 #include "SensorClient.h"
+#include "Serial.h"
 
 #endif
