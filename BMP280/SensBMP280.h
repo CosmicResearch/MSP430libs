@@ -49,6 +49,7 @@
 #define SENSCAPE_BMP280_H_
 
 #include "SensTimer.h"
+#include "math.h"
 
 //#define BMP280_TEST_PRESS_AND_TEMP_FORMULAS
 //#define BMP280_DEBUG
