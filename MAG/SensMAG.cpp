@@ -17,7 +17,7 @@ struct lsm9ds0_state_t {
 };
 
 
-uint8_t lsm9ds0_buffer[24] =  { 0 };
+uint8_t lsm9ds0_buffer_mag[24] =  { 0 };
 uint8_t lsm9ds0_xm_id;
 
 lsm9ds0_state_t SensMAG::_state = {false, false, S_IDLE };
@@ -158,7 +158,7 @@ void SensMAG::onSpiResourceGranted() {
 			setMagODR(mRate);
 			setMagScale(mScale);							   // Possible fix is using the transer
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
-			//readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
+			//readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer_mag, 6);
 			break;
 		case S_STOP:
 			postTask(onSignalDoneTask, (void*)(uint16_t)SUCCESS);
@@ -172,11 +172,11 @@ void SensMAG::onSpiResourceGranted() {
 			aux1 = readRegister(LSM9DS0_REGISTER_TEMP_OUT_L_XM);
 			aux2 = readRegister(LSM9DS0_REGISTER_TEMP_OUT_H_XM);
 	        _data.u_temp = 21.0 + ((((int16_t) aux2 << 12) | aux1 << 4 ) >> 4) / 8; // Temperature is a 12-bit signed integer, 21 is guess of the intercept
-			readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer, 6);
+			readBuffer(LSM9DS0_REGISTER_OUT_X_L_M, lsm9ds0_buffer_mag, 6);
 
 	        //digitalWrite(CHIP_CS_XM, LOW); // Initiate communication
 	        //_spiObj->transfer(LSM9DS0_REGISTER_OUT_X_L_M | 0x80 | 0x40);
-	        //_spiObj->transfer(NULL, lsm9ds0_buffer, 6);
+	        //_spiObj->transfer(NULL, lsm9ds0_buffer_mag, 6);
 	        //digitalWrite(CHIP_CS_XM, HIGH); // Close communication
 
 			break;

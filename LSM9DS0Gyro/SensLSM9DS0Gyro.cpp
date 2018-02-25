@@ -17,7 +17,7 @@ struct lsm9ds0gyro_state_t {
 	boolean_t is_ready;
 };
 
-uint8_t lsm9ds0_buffer[24] = { 0 };
+uint8_t lsm9ds0_buffer_gyro[24] = { 0 };
 
 lsm9ds0gyro_state_t SensLSM9DS0Gyro::_state = { S_IDLE, LSM9DS0_GYROSCALE_245DPS, G_ODR_95_BW_125, false, false};
 lsm9ds0gyro_data_t SensLSM9DS0Gyro::_data;
@@ -101,7 +101,7 @@ void SensLSM9DS0Gyro::onSpiResourceGranted() {
 			digitalWrite(LSM9DS0_G_CSN, LOW);
 
 			_spiObj->transfer(LSM9DS0_REGISTER_OUT_X_L_G | 0x80 | 0x40);
-			_spiObj->transfer(NULL, lsm9ds0_buffer, 6);
+			_spiObj->transfer(NULL, lsm9ds0_buffer_gyro, 6);
 
 			digitalWrite(LSM9DS0_G_CSN, HIGH);
     		break;
