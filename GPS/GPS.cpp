@@ -267,7 +267,7 @@ bool GPS::processLine(char* line, gps_data_t* data) {
 bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
     char* line = GGALine;
     GGALine += 7;
-    data->type = "GGA";
+    strcpy(data->type, "GGA");
     if (*GGALine != ',') {
         data->hour = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
         data->minute = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
@@ -347,7 +347,7 @@ bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
 bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
     char* line = GLLLine;
     GLLLine+=7;
-    data->type = "GLL";
+    strcpy(data->type, "GLL");
     if (*GLLLine != ',') {
         data->latitude = stringToDegreesIn1000000ths(GLLLine); GLLLine++;
     }
@@ -397,7 +397,7 @@ bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
 
 bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
     char* line = RMCLine;
-    data->type = "RMC";
+    strcpy(data->type, "RMC");
     RMCLine += 7;
     if (*RMCLine != ',') {
         data->hour = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);

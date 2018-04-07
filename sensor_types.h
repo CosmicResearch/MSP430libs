@@ -16,6 +16,8 @@
 #ifndef SENSOR_TYPES_H_
 #define SENSOR_TYPES_H_
 
+#include "Senscape.h"
+
 struct sensor_data_base_t : sensor_data_t {
     uint32_t time;
 };

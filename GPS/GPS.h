@@ -34,7 +34,7 @@ struct gps_data_t : sensor_data_base_t {
     int32_t altitude; //Stored in units of 1/100 meters
     bool fix;
     uint8_t fixQuality, satellites;
-    char* type;
+    char type[4];
 };
 
 typedef enum {

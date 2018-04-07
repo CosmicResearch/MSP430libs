@@ -9,6 +9,7 @@
 #define LSM9DS0_MAG_MGAUSS_12GAUSS     (0.48F)
 
 #include "Senscape.h"
+#include "sensor_types.h"
 
 //* Status Register Bits */
 
