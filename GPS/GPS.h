@@ -20,10 +20,11 @@
 #define BONDAR_GPS
 
 #include "Senscape.h"
+#include "sensor_types.h"
 #include <string.h>
 #define UBX_CFG_RATE 0
 
-struct gps_data_t : sensor_data_t {
+struct gps_data_t : sensor_data_base_t {
     float speed, angle, magvariation, HDOP;
     uint8_t hour, minute, seconds;
     uint8_t day, month;

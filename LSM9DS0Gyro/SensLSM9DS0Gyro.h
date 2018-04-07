@@ -1,6 +1,8 @@
 #ifndef __LSM9DS0_H__
 #define __LSM9DS0_H__
 
+#include "sensor_types.h"
+
 #define GYROTYPE                           (true)
 #define LSM9DS0_G_CSN					   (20)
 
@@ -50,7 +52,7 @@ typedef enum {							// ODR (Hz) --- Cutoff
 
 struct lsm9ds0gyro_state_t;
 
-struct lsm9ds0gyro_data_t : sensor_data_t {
+struct lsm9ds0gyro_data_t : sensor_data_base_t {
 	int16_t x;
 	int16_t y;
 	int16_t z;

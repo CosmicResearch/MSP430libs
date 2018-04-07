@@ -90,7 +90,7 @@ enum mag_odr
 
 struct lsm9ds0_state_t;
 
-struct lsm9ds0_data_t : sensor_data_t {
+struct lsm9ds0_data_t : sensor_data_base_t {
     int16_t x;
     int16_t y;
     int16_t z;

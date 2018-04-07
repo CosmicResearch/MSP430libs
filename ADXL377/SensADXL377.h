@@ -16,13 +16,14 @@
 
 #ifndef SENSCAPE_ADXL377_H_
 #define SENSCAPE_ADXL377_H_
+#include "sensor_types.h"
 #include "Senscape.h"
 #include "SensADC.h"
 
 /* Chip ID Definition */
 //const uint8_t ADXL377_CHIP_ID = 0x59;
 
-struct adxl377_data_t : sensor_data_t{
+struct adxl377_data_t : sensor_data_base_t{
 	int16_t _chanx;
 	int16_t _chany;
 	int16_t _chanz;
