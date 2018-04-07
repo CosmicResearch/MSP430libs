@@ -1,14 +1,14 @@
 #ifndef SENSCAPE_MAG_H_
 #define SENSCAPE_MAG_H_
 
-#define CHIP_CS_XM	(19)
+#define CHIP_CS_XM	(19) //19
 
 #define LSM9DS0_MAG_MGAUSS_2GAUSS      (0.08F)
 #define LSM9DS0_MAG_MGAUSS_4GAUSS      (0.16F)
 #define LSM9DS0_MAG_MGAUSS_8GAUSS      (0.32F)
 #define LSM9DS0_MAG_MGAUSS_12GAUSS     (0.48F)
 
-
+#include "Senscape.h"
 
 //* Status Register Bits */
 
@@ -68,22 +68,23 @@ const uint8_t LSM9DS0_MAGDATARATE_25HZ             = (0b011 << 2);
 const uint8_t LSM9DS0_MAGDATARATE_50HZ             = (0b100 << 2);
 const uint8_t LSM9DS0_MAGDATARATE_100HZ            = (0b101 << 2);
 
+
 enum mag_scale
 {
-	M_SCALE_2GS,    // 00:  2Gs
-	M_SCALE_4GS,    // 01:  4Gs
-	M_SCALE_8GS,    // 10:  8Gs
-	M_SCALE_12GS,   // 11:  12Gs
+	M_SCALE_2GS     = (0b00 << 5),    // 00:  2Gs
+	M_SCALE_4GS     = (0b01 << 5),    // 01:  4Gs
+	M_SCALE_8GS     = (0b10 << 5),    // 10:  8Gs
+	M_SCALE_12GS    = (0b11 << 5)     // 11:  12Gs
 };
 
 enum mag_odr
 {
-	M_ODR_3125, // 3.125 Hz (0x00)
-	M_ODR_625,  // 6.25 Hz (0x01)
-	M_ODR_125,  // 12.5 Hz (0x02)
-	M_ODR_25,   // 25 Hz (0x03)
-	M_ODR_50,   // 50 (0x04)
-	M_ODR_100,  // 100 Hz (0x05)
+	M_ODR_3125      = (0b000 << 2),   // 3.125 Hz (0x00)
+	M_ODR_625       = (0b001 << 2),   // 6.25 Hz (0x01)
+	M_ODR_125       = (0b010 << 2),   // 12.5 Hz (0x02)
+	M_ODR_25        = (0b011 << 2),   // 25 Hz (0x03)
+	M_ODR_50        = (0b100 << 2),   // 50 (0x04)
+	M_ODR_100       = (0b101 << 2),   // 100 Hz (0x05)
 };
 
 
@@ -96,9 +97,17 @@ struct lsm9ds0_data_t : sensor_data_t {
     int16_t u_temp;
 };
 
+struct mag_offsets {
+    int16_t x, y, z;
+};
+
 class SensMAG : public SensorClient {
 
     private:
+        static mag_offsets mag_off;
+
+        static float_t _mag_mgauss_lsb;
+
 		static lsm9ds0_data_t _data;
 		static lsm9ds0_state_t _state;
 		static Resource *_spiResource;
@@ -118,7 +127,6 @@ class SensMAG : public SensorClient {
         static void ((*_onCalibrationDone)(error_t));
         static void ((*_onReadDone)(sensor_data_t *, error_t));
 
-        static void calcmRes();
         static void calcaRes();
         static void initMag();
 
@@ -145,6 +153,8 @@ class SensMAG : public SensorClient {
 		virtual error_t readNow(void);
 		virtual boolean_t isStarted(void);
 
+        static float_t calcmRes();
+
 		//Convert from RAW signed 16-bit value to Gauss (Gs)
 		float calcMag(int32_t mag);
 
@@ -156,7 +166,7 @@ class SensMAG : public SensorClient {
 	   void attachRequestAccelMagIdDone(void (*)(uint8_t *id, error_t));
 	   virtual void attachStartDone(void (*)(error_t));
 	   virtual void attachStopDone(void (*)(error_t));
-	   void attachCalibrationDonde(void (*)(error_t));
+	   void attachCalibrationDone(void (*)(error_t));
 	   virtual void attachReadDone(void (*)(sensor_data_t *, error_t));
 
 
