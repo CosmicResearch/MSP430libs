@@ -1,7 +1,7 @@
 #ifndef SENSCAPE_MAG_H_
 #define SENSCAPE_MAG_H_
 
-#define CHIP_CS_XM	(4)
+#define CHIP_CS_XM	(19)
 
 #define LSM9DS0_MAG_MGAUSS_2GAUSS      (0.08F)
 #define LSM9DS0_MAG_MGAUSS_4GAUSS      (0.16F)

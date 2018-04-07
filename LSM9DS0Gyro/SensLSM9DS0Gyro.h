@@ -2,7 +2,7 @@
 #define __LSM9DS0_H__
 
 #define GYROTYPE                           (true)
-#define LSM9DS0_G_CSN					   (3)
+#define LSM9DS0_G_CSN					   (20)
 
 const uint8_t LSM9DS0_ADDRESS_GYRO = 0x6B;
 const uint8_t LSM9DS0_G_ID = 0xD4;
