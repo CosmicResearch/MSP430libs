@@ -7,37 +7,43 @@
 
 SensTimer timer = SensTimer(TMILLIS);
 
-SensADC _adcx =  SensADC(
-				ADC_CHANNEL_1,
-				REFERENCE_AVcc_AVss,
-				REFVOLT_LEVEL_NONE,
-				SHT_SOURCE_ACLK,
-				SHT_CLOCK_DIV_1,
-				SAMPLE_HOLD_4_CYCLES,
-				SAMPCON_SOURCE_SMCLK,
-				SAMPCON_CLOCK_DIV_1);
+Resource adc_resource = Resource(ARBITER_ADC);
 
-SensADC _adcy =  SensADC(
-				ADC_CHANNEL_2,
-				REFERENCE_AVcc_AVss,
-				REFVOLT_LEVEL_NONE,
-				SHT_SOURCE_ACLK,
-				SHT_CLOCK_DIV_1,
-				SAMPLE_HOLD_4_CYCLES,
-				SAMPCON_SOURCE_SMCLK,
-				SAMPCON_CLOCK_DIV_1);
+SensADC _adcx =  SensADC
+                (&adc_resource,
+                 ADC_CHANNEL_4,
+                 REFERENCE_AVcc_AVss,
+                 REFVOLT_LEVEL_NONE,
+                 SHT_SOURCE_ACLK,
+                 SHT_CLOCK_DIV_1,
+                 SAMPLE_HOLD_4_CYCLES,
+                 SAMPCON_SOURCE_SMCLK,
+                 SAMPCON_CLOCK_DIV_1);
 
-SensADC _adcz =  SensADC(
-				ADC_CHANNEL_3,
-				REFERENCE_AVcc_AVss,
-				REFVOLT_LEVEL_NONE,
-				SHT_SOURCE_ACLK,
-				SHT_CLOCK_DIV_1,
-				SAMPLE_HOLD_4_CYCLES,
-				SAMPCON_SOURCE_SMCLK,
-				SAMPCON_CLOCK_DIV_1);
+SensADC _adcy = SensADC(
+                &adc_resource,
+                ADC_CHANNEL_3,
+                REFERENCE_AVcc_AVss,
+                REFVOLT_LEVEL_NONE,
+                SHT_SOURCE_ACLK,
+                SHT_CLOCK_DIV_1,
+                SAMPLE_HOLD_4_CYCLES,
+                SAMPCON_SOURCE_SMCLK,
+                SAMPCON_CLOCK_DIV_1);
 
-SensADXL377 adxl = SensADXL377(_adcx, _adcy, _adcz);
+
+SensADC _adcz = SensADC(
+                &adc_resource,
+                ADC_CHANNEL_2,
+                REFERENCE_AVcc_AVss,
+                REFVOLT_LEVEL_NONE,
+                SHT_SOURCE_ACLK,
+                SHT_CLOCK_DIV_1,
+                SAMPLE_HOLD_4_CYCLES,
+                SAMPCON_SOURCE_SMCLK,
+                SAMPCON_CLOCK_DIV_1);
+
+SensADXL377 adxl = SensADXL377(&_adcx, &_adcy, &_adcz);
 
 void onPeriodicTimerDone(void);
 void onStartDone(error_t result);

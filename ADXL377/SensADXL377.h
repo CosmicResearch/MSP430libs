@@ -30,9 +30,9 @@ struct adxl377_data_t : sensor_data_base_t{
 };
 
 struct adxl377_calib_t {
-	uint16_t _chanx;
-	uint16_t _chany;
-	uint16_t _chanz;
+	int16_t _chanx;
+	int16_t _chany;
+	int16_t _chanz;
 };
 
 struct read_state_t {

@@ -20,84 +20,23 @@
 void ((*SensADXL377::_onStartDone)(error_t)) = NULL;
 void ((*SensADXL377::_onStopDone)(error_t)) = NULL;
 void ((*SensADXL377::_onReadDone)(sensor_data_t *, error_t)) = NULL;
+
 read_state_t SensADXL377::readState = {false, false, false};
 adxl377_data_t SensADXL377::_data = adxl377_data_t();
 adxl377_calib_t SensADXL377::_calib = {0,0,0};
-SensADC* SensADXL377::_adcx = NULL; /* SensADC(
-		ADC_CHANNEL_1,
-		REFERENCE_AVcc_AVss,
-		REFVOLT_LEVEL_NONE,
-		SHT_SOURCE_ACLK,
-		SHT_CLOCK_DIV_1,
-		SAMPLE_HOLD_4_CYCLES,
-		SAMPCON_SOURCE_SMCLK,
-		SAMPCON_CLOCK_DIV_1);*/
-SensADC* SensADXL377::_adcy = NULL; /*SensADC(
-		ADC_CHANNEL_2,
-		REFERENCE_AVcc_AVss,
-		REFVOLT_LEVEL_NONE,
-		SHT_SOURCE_ACLK,
-		SHT_CLOCK_DIV_1,
-		SAMPLE_HOLD_4_CYCLES,
-		SAMPCON_SOURCE_SMCLK,
-		SAMPCON_CLOCK_DIV_1);*/
-SensADC* SensADXL377::_adcz = NULL;/* SensADC(
-		ADC_CHANNEL_3,
-		REFERENCE_AVcc_AVss,
-		REFVOLT_LEVEL_NONE,
-		SHT_SOURCE_ACLK,
-		SHT_CLOCK_DIV_1,
-		SAMPLE_HOLD_4_CYCLES,
-		SAMPCON_SOURCE_SMCLK,
-		SAMPCON_CLOCK_DIV_1);*/
+
+SensADC* SensADXL377::_adcx = NULL;
+SensADC* SensADXL377::_adcy = NULL;
+SensADC* SensADXL377::_adcz = NULL;
+
 
 /* Constructors ***************************************************************/
-SensADXL377::SensADXL377(/*uint16_t inchx,
-		uint16_t inchy,
-		uint16_t inchz,
-		uint16_t sref,
-		uint16_t ref2_5v,
-		uint16_t ssel,
-		uint16_t div,
-		uint16_t sht,
-		uint16_t sampcon_ssel,
-		uint16_t sampcon_id*/
-		SensADC* x, SensADC* y, SensADC* z) {
+SensADXL377::SensADXL377(SensADC* x, SensADC* y, SensADC* z) {
 
+    /* Create channels */
 	SensADXL377::_adcx = x;
 	SensADXL377::_adcy = y;
 	SensADXL377::_adcz = z;
-
-	/* Crete an ADC Sens for every axis */
-	/*SensADXL377::_adcx = new SensADC(
-			inchx,
-			sref,
-			ref2_5v,
-			ssel,
-			div,
-			sht,
-			sampcon_ssel,
-			sampcon_id);
-
-	SensADXL377::_adcy = new SensADC(
-				inchy,
-				sref,
-				ref2_5v,
-				ssel,
-				div,
-				sht,
-				sampcon_ssel,
-				sampcon_id);
-
-	SensADXL377::_adcz = new SensADC(
-				inchz,
-				sref,
-				ref2_5v,
-				ssel,
-				div,
-				sht,
-				sampcon_ssel,
-				sampcon_id);*/
 
     /* sensor default data */
 	SensADXL377::_data._chanx = 0;
@@ -105,9 +44,9 @@ SensADXL377::SensADXL377(/*uint16_t inchx,
 	SensADXL377::_data._chanz = 0;
 
     /* sensor default calibration of 0g */
-	SensADXL377::_calib._chanx = 2040;
-	SensADXL377::_calib._chany = 2040;
-	SensADXL377::_calib._chanz = 2040;
+	SensADXL377::_calib._chanx = 2005;
+	SensADXL377::_calib._chany = 2007;
+	SensADXL377::_calib._chanz = 2009;
 	
 	started = false;
 }
@@ -115,7 +54,7 @@ SensADXL377::SensADXL377(/*uint16_t inchx,
 /* Private Methods ************************************************************/
 
 boolean SensADXL377::onSingleDataReadyChannelx(uint16_t data, error_t result) {
-	SensADXL377::_data._chanx =  (data* 4000 / 4096) - (SensADXL377::_calib._chanx * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
+	SensADXL377::_data._chanx = (data* 4000 / 4096) - (SensADXL377::_calib._chanx * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
 	readState.x = true;
 	notifyIfNecessary();
 
