@@ -24,10 +24,28 @@ void ((*SensADXL377::_onReadDone)(sensor_data_t *, error_t)) = NULL;
 read_state_t SensADXL377::readState = {false, false, false};
 adxl377_data_t SensADXL377::_data = adxl377_data_t();
 adxl377_calib_t SensADXL377::_calib = {0,0,0};
+adxl377_calib_t SensADXL377::_dataaux = {0,0,0};
+int16_t SensADXL377::_numLectures = 10;
+int16_t SensADXL377::_counter = 0;
+boolean_t SensADXL377::started =  0;
 
 SensADC* SensADXL377::_adcx = NULL;
 SensADC* SensADXL377::_adcy = NULL;
 SensADC* SensADXL377::_adcz = NULL;
+
+
+/* Null, because instance will be initialized on demand. */
+SensADXL377* SensADXL377::instance = NULL;
+
+SensADXL377* SensADXL377::getInstance(SensADC* x, SensADC* y, SensADC* z)
+{
+    if (instance == NULL)
+    {
+        instance = new SensADXL377(x,y,z);
+    }
+    return instance;
+}
+
 
 
 /* Constructors ***************************************************************/
@@ -43,6 +61,14 @@ SensADXL377::SensADXL377(SensADC* x, SensADC* y, SensADC* z) {
 	SensADXL377::_data._chany = 0;
 	SensADXL377::_data._chanz = 0;
 
+    /* sensor default data */
+    SensADXL377::_dataaux._chanx = 0;
+    SensADXL377::_dataaux._chany = 0;
+    SensADXL377::_dataaux._chanz = 0;
+
+    /* Num samples to integrate (less noisy) */
+    SensADXL377::_numLectures = 20;
+
     /* sensor default calibration of 0g */
 	SensADXL377::_calib._chanx = 2005;
 	SensADXL377::_calib._chany = 2007;
@@ -54,7 +80,7 @@ SensADXL377::SensADXL377(SensADC* x, SensADC* y, SensADC* z) {
 /* Private Methods ************************************************************/
 
 boolean SensADXL377::onSingleDataReadyChannelx(uint16_t data, error_t result) {
-	SensADXL377::_data._chanx = (data* 4000 / 4096) - (SensADXL377::_calib._chanx * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
+	SensADXL377::_data._chanx = (data* 1) - (SensADXL377::_calib._chanx * 1);  //2^12 = 4096. 4000/4096=0.98 Result in 0.1g
 	readState.x = true;
 	notifyIfNecessary();
 
@@ -62,7 +88,7 @@ boolean SensADXL377::onSingleDataReadyChannelx(uint16_t data, error_t result) {
 }
 
 boolean SensADXL377::onSingleDataReadyChannely(uint16_t data, error_t result) {
-	SensADXL377::_data._chany =  (data * 4000 / 4096) - (SensADXL377::_calib._chany * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
+	SensADXL377::_data._chany = (data * 1) - (SensADXL377::_calib._chany * 1);  //2^12 = 4096. 4000/4096=0.98. Result in 0.1g
 	readState.y = true;
 	notifyIfNecessary();
 
@@ -70,18 +96,62 @@ boolean SensADXL377::onSingleDataReadyChannely(uint16_t data, error_t result) {
 }
 
 boolean  SensADXL377::onSingleDataReadyChannelz(uint16_t data, error_t result) {
-	SensADXL377::_data._chanz = (data * 4000 / 4096) - (SensADXL377::_calib._chanz * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
+	SensADXL377::_data._chanz = (data * 1) - (SensADXL377::_calib._chanz * 1);  //2^12 = 4096. 4000/4096=0.98. Result in 0.1g
 	readState.z = true;
 	notifyIfNecessary();
 
 	return false;
 }
 
+
+error_t SensADXL377::privateReadNow(){
+    if (!started) {
+        return ERROR;
+    }
+    error_t ret;
+
+            // Start new conversion channels
+    if ((ret = SensADXL377::_adcx->read()) != SUCCESS) {
+        return ret;
+    }
+    if (( ret = SensADXL377::_adcy->read()) != SUCCESS) {
+        return ret;
+    }
+    if (( ret = SensADXL377::_adcz->read()) != SUCCESS) {
+        return ret;
+    }
+
+    SensADXL377::readState = {false, false, false};
+
+    return SUCCESS;
+}
+
 void SensADXL377::notifyIfNecessary() {
 	if (readState.x && readState.y && readState.z && _onReadDone) {
-		adxl377_data_t* ret = new adxl377_data_t;
-		*ret = SensADXL377::_data;
-		_onReadDone(ret, SUCCESS);
+
+
+        SensADXL377::_dataaux._chanx = SensADXL377::_dataaux._chanx + SensADXL377::_data._chanx;
+        SensADXL377::_dataaux._chany = SensADXL377::_dataaux._chany + SensADXL377::_data._chany;
+        SensADXL377::_dataaux._chanz = SensADXL377::_dataaux._chanz + SensADXL377::_data._chanz;
+        SensADXL377::_counter = SensADXL377::_counter + 1;
+
+        if (SensADXL377::_counter >= SensADXL377::_numLectures){
+            adxl377_data_t* ret = new adxl377_data_t;
+            SensADXL377::_counter = 0;
+            SensADXL377::_data._chanx = (int16_t) SensADXL377::_dataaux._chanx/SensADXL377::_numLectures;
+            SensADXL377::_data._chany = (int16_t) SensADXL377::_dataaux._chany/SensADXL377::_numLectures;
+            SensADXL377::_data._chanz = (int16_t) SensADXL377::_dataaux._chanz/SensADXL377::_numLectures;
+            SensADXL377::_dataaux._chanx = 0;
+            SensADXL377::_dataaux._chany = 0;
+            SensADXL377::_dataaux._chanz = 0;
+
+            *ret = SensADXL377::_data;
+            _onReadDone(ret, SUCCESS);
+        }
+        else {
+            wait(2); //Adafruit ADXL377 board cannot be reeded higher han 500MHz due to board capacitors
+            privateReadNow();
+        }
 	}
 }
 
@@ -89,9 +159,9 @@ void SensADXL377::notifyIfNecessary() {
 error_t SensADXL377::start() {
 
 	if (!started) {
-		SensADXL377::_adcx->attachCallback(onSingleDataReadyChannelx);
-		SensADXL377::_adcy->attachCallback(onSingleDataReadyChannely);
-		SensADXL377::_adcz->attachCallback(onSingleDataReadyChannelz);
+	    SensADXL377::_adcx->attachCallback(onSingleDataReadyChannelx);
+	    SensADXL377::_adcy->attachCallback(onSingleDataReadyChannely);
+	    SensADXL377::_adcz->attachCallback(onSingleDataReadyChannelz);
 		started = true;
 		if (_onStartDone) {
 			_onStartDone(SUCCESS);
@@ -128,16 +198,18 @@ error_t SensADXL377::read(){
 		return ERROR;
 	}
 	error_t ret;
-		// Start new conversion channel[0..2].
-	if ((ret = SensADXL377::_adcx->read()) != SUCCESS) {
-		return ret;
-	}
-	if (( ret = SensADXL377::_adcy->read()) != SUCCESS) {
-		return ret;
-	}
-	if (( ret = SensADXL377::_adcz->read()) != SUCCESS) {
-		return ret;
-	}
+
+            // Start new conversion channels
+    if ((ret = SensADXL377::_adcx->read()) != SUCCESS) {
+        return ret;
+    }
+    if (( ret = SensADXL377::_adcy->read()) != SUCCESS) {
+        return ret;
+    }
+    if (( ret = SensADXL377::_adcz->read()) != SUCCESS) {
+        return ret;
+    }
+
 	SensADXL377::readState = {false, false, false};
 
 	return SUCCESS;
@@ -155,7 +227,8 @@ void SensADXL377::attachStopDone(void (*function)(error_t)) {
 	_onStopDone = function;
 }
 void SensADXL377::attachReadDone(void (*function)(sensor_data_t *, error_t)) {
-	_onReadDone = function;
+    _onReadDone = function;
+
 }
 boolean_t SensADXL377::isStarted() {
 	return this->started;
