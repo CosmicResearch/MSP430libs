@@ -135,7 +135,7 @@ void SensADXL377::notifyIfNecessary() {
         SensADXL377::_counter = SensADXL377::_counter + 1;
 
         if (SensADXL377::_counter >= SensADXL377::_numLectures){
-            adxl377_data_t* ret = new adxl377_data_t;
+            accel_data_t* ret = new accel_data_t;
             SensADXL377::_counter = 0;
             SensADXL377::_data.x = (int16_t) SensADXL377::_dataaux.x/SensADXL377::_numLectures;
             SensADXL377::_data.y = (int16_t) SensADXL377::_dataaux.y/SensADXL377::_numLectures;
