@@ -52,16 +52,10 @@ typedef enum {							// ODR (Hz) --- Cutoff
 
 struct lsm9ds0gyro_state_t;
 
-struct lsm9ds0gyro_data_t : sensor_data_base_t {
-	int16_t x;
-	int16_t y;
-	int16_t z;
-};
-
 class SensLSM9DS0Gyro : public SensorClient {
 	private:
 		static lsm9ds0gyro_state_t _state;
-        static lsm9ds0gyro_data_t _data;
+        static gyro_data_t _data;
 		static Resource *_spiResource;
 		static SPI *_spiObj;
 

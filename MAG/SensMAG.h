@@ -91,13 +91,6 @@ enum mag_odr
 
 struct lsm9ds0_state_t;
 
-struct lsm9ds0_data_t : sensor_data_base_t {
-    int16_t x;
-    int16_t y;
-    int16_t z;
-    int16_t u_temp;
-};
-
 struct mag_offsets {
     int16_t x, y, z;
 };
@@ -109,7 +102,7 @@ class SensMAG : public SensorClient {
 
         static float_t _mag_mgauss_lsb;
 
-		static lsm9ds0_data_t _data;
+		static mag_data_t _data;
 		static lsm9ds0_state_t _state;
 		static Resource *_spiResource;
 		static SPI *_spiObj;

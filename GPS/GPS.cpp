@@ -241,7 +241,7 @@ bool GPS::processLine(char* line, gps_data_t* data) {
      */
     uint8_t checksum = charHexToInt(line[size-2])*16 + charHexToInt(line[size-1]);
     uint8_t parity = 0;
-    char messageType[4];
+    char messageType[4] = {0};
     for (int i = 1; i < (size-3); ++i) {
         if (i >= 3 && i <= 5) {
             messageType[i-3] = line[i];
@@ -267,7 +267,7 @@ bool GPS::processLine(char* line, gps_data_t* data) {
 bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
     char* line = GGALine;
     GGALine += 7;
-    strcpy(data->type, "GGA");
+    data->type = GGA;
     if (*GGALine != ',') {
         data->hour = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
         data->minute = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
@@ -336,10 +336,10 @@ bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
         GGALine++;
         data->altitude = -1;
     }
-#ifndef __TEST__
+/*#ifndef __TEST__
     if (line != NULL)
         delete line;
-#endif
+#endif*/
     return true;
 
 }
@@ -347,7 +347,7 @@ bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
 bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
     char* line = GLLLine;
     GLLLine+=7;
-    strcpy(data->type, "GLL");
+    data->type = GLL;
     if (*GLLLine != ',') {
         data->latitude = stringToDegreesIn1000000ths(GLLLine); GLLLine++;
     }
@@ -388,16 +388,16 @@ bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
         data->seconds = 0;
     }
     data->fix = (*GLLLine=='A'); GLLLine++; GLLLine++;
-#ifndef __TEST__
+/*#ifndef __TEST__
     if (line != NULL)
         delete line;
-#endif
+#endif*/
     return true;
 }
 
 bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
     char* line = RMCLine;
-    strcpy(data->type, "RMC");
+    data->type = RMC;
     RMCLine += 7;
     if (*RMCLine != ',') {
         data->hour = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
@@ -471,10 +471,10 @@ bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
         data->magvariation = 0.0f;
     }
     data->altitude = -1;
-#ifndef __TEST__
+/*#ifndef __TEST__
     if (line != NULL)
         delete line;
-#endif
+#endif*/
     return true;
 }
 

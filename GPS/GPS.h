@@ -24,19 +24,6 @@
 #include <string.h>
 #define UBX_CFG_RATE 0
 
-struct gps_data_t : sensor_data_base_t {
-    float speed, angle, magvariation, HDOP;
-    uint8_t hour, minute, seconds;
-    uint8_t day, month;
-    uint16_t year;
-    uint32_t latitude, longitude; //Stored in units of 1/1000000 degrees
-    char latitudeChar, longitudeChar;
-    int32_t altitude; //Stored in units of 1/100 meters
-    bool fix;
-    uint8_t fixQuality, satellites;
-    char type[4];
-};
-
 typedef enum {
     S_IDLE,
     S_START,

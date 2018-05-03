@@ -21,9 +21,9 @@ uint8_t lsm9ds0_buffer_mag[24] =  { 0 };
 uint8_t lsm9ds0_xm_id;
 
 float_t SensMAG::_mag_mgauss_lsb = 0;
-mag_offsets SensMAG::mag_off = {-244.72, 222.86, 136.76};
+mag_offsets SensMAG::mag_off = {(int16_t)-244.72, (int16_t)222.86, (int16_t)136.76};
 lsm9ds0_state_t SensMAG::_state = {false, false, S_IDLE };
-lsm9ds0_data_t SensMAG::_data = lsm9ds0_data_t();
+mag_data_t SensMAG::_data = mag_data_t();
 Resource *SensMAG::_spiResource = NULL;
 SPI *SensMAG::_spiObj = NULL;
 

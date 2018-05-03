@@ -23,12 +23,6 @@
 /* Chip ID Definition */
 //const uint8_t ADXL377_CHIP_ID = 0x59;
 
-struct adxl377_data_t : sensor_data_base_t{
-	int16_t _chanx;
-	int16_t _chany;
-	int16_t _chanz;
-};
-
 struct adxl377_calib_t {
 	uint16_t _chanx;
 	uint16_t _chany;
@@ -45,7 +39,7 @@ class SensADXL377 : SensorClient{
 		static SensADC* _adcx;
 		static SensADC* _adcy;
 		static SensADC* _adcz;
-		static adxl377_data_t _data;
+		static accel_data_t _data;
 		static adxl377_calib_t _calib;
 		static read_state_t readState;
 		boolean_t started;
