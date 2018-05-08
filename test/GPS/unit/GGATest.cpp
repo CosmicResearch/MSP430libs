@@ -35,5 +35,6 @@ int main() {
     assert(data.latitude == 47285233 && data.latitudeChar == 'N' && data.longitude == 8565265 && data.longitudeChar == 'E');
     std::cout << "ALTITUDE: " << data.altitude/100.0f << std::endl;
     assert(data.altitude == 49960);
+    std::cout << "TYPE: " << data.type << std::endl;
     return 1;
 }

@@ -66,6 +66,7 @@ private:
     static float_t stringToFloat(char* &c);
     static uint32_t stringToDegreesIn1000000ths(char* &c);
     static uint32_t stringToFloatIn100ths(char* &c);
+    static uint16_t advance(char* c);
     
     static void onSignalDoneTask(void* param);
 
