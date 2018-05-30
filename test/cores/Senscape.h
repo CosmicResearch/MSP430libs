@@ -21,15 +21,15 @@
 
 #include <ctype.h>
 #include <stdint.h>
+#include <string.h>
 
 #define ERROR 1
 #define SUCCESS 0
 
 typedef bool boolean_t;
 typedef unsigned char byte_t;
-typedef unsigned char error_t;
+typedef int error_t;
 typedef float float_t;
-typedef unsigned char error_t;
 
 error_t postTask(void (*function)(void*), void *param);
 

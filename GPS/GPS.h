@@ -20,21 +20,9 @@
 #define BONDAR_GPS
 
 #include "Senscape.h"
+#include "sensor_types.h"
 #include <string.h>
 #define UBX_CFG_RATE 0
-
-struct gps_data_t : sensor_data_t {
-    float speed, angle, magvariation, HDOP;
-    uint8_t hour, minute, seconds;
-    uint8_t day, month;
-    uint16_t year;
-    uint32_t latitude, longitude; //Stored in units of 1/1000000 degrees
-    char latitudeChar, longitudeChar;
-    int32_t altitude; //Stored in units of 1/100 meters
-    bool fix;
-    uint8_t fixQuality, satellites;
-    char* type;
-};
 
 typedef enum {
     S_IDLE,
@@ -78,6 +66,7 @@ private:
     static float_t stringToFloat(char* &c);
     static uint32_t stringToDegreesIn1000000ths(char* &c);
     static uint32_t stringToFloatIn100ths(char* &c);
+    static uint16_t advance(char* c);
     
     static void onSignalDoneTask(void* param);
 

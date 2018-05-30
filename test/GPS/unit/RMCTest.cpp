@@ -37,6 +37,7 @@ int main() {
     assert(data.latitude == 47285240 && data.latitudeChar == 'N' && data.longitude == 8565254 && data.longitudeChar == 'E');
     std::cout << "SPEED: " << data.speed << std::endl;
     assert(fabs(data.speed-0.004) < std::numeric_limits<float>::epsilon());
+    std::cout << "TYPE: " << data.type << std::endl;
     return 1;
 }
 

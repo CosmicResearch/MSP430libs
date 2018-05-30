@@ -20,7 +20,7 @@ struct lsm9ds0gyro_state_t {
 uint8_t lsm9ds0_buffer_gyro[24] = { 0 };
 
 lsm9ds0gyro_state_t SensLSM9DS0Gyro::_state = { S_IDLE, LSM9DS0_GYROSCALE_245DPS, G_ODR_95_BW_125, false, false};
-lsm9ds0gyro_data_t SensLSM9DS0Gyro::_data;
+gyro_data_t SensLSM9DS0Gyro::_data;
 Resource *SensLSM9DS0Gyro::_spiResource = NULL;
 SPI *SensLSM9DS0Gyro::_spiObj = NULL;
 float SensLSM9DS0Gyro::_gyro_dps_digit = 0.0;

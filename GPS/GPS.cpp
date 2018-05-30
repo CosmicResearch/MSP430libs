@@ -164,32 +164,15 @@ uint16_t GPS::stringToInt(char* &c) {
 }
 
 float_t GPS::stringToFloat(char* &c) {
-    float_t integerPart = 0.0f;
-    float_t decimalPart = 0.0f;
-    float_t divisor = 1.0f;
-    bool isInDecimalPart = false;
-    int sign = 1;
-    if (*c == '-') {
-        sign = -1;
-        ++c;
+    uint16_t len = strlen(c);
+    uint16_t i = 0;
+    while (i < len && c[i] != ',') {
+        ++i;
     }
-    else if (*c == '+') {
-        ++c;
-    }
-    while ((*c >= '0' && *c <= '9') || *c == '.') {
-        if (isInDecimalPart) {
-            decimalPart = (decimalPart*10) + (*c - '0');
-            divisor *= 10;
-        }
-        else if (*c == '.') {
-            isInDecimalPart = true;
-        }
-        else {
-            integerPart = (integerPart*10) + (*c - '0');
-        }
-        c++;
-    }
-    return float_t(integerPart + (decimalPart/divisor)*sign);
+    char buff[20] = {0};
+    strncpy(buff, c, i);
+    c += i;
+    return atof(buff);
 }
 
 uint32_t GPS::stringToDegreesIn1000000ths(char* &c) {
@@ -241,11 +224,9 @@ bool GPS::processLine(char* line, gps_data_t* data) {
      */
     uint8_t checksum = charHexToInt(line[size-2])*16 + charHexToInt(line[size-1]);
     uint8_t parity = 0;
-    char messageType[4];
+    char messageType[4] = {0};
+    strncpy(messageType, &line[3], 3);
     for (int i = 1; i < (size-3); ++i) {
-        if (i >= 3 && i <= 5) {
-            messageType[i-3] = line[i];
-        }
         parity ^= line[i];
     }
     if (checksum != parity) {
@@ -267,7 +248,7 @@ bool GPS::processLine(char* line, gps_data_t* data) {
 bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
     char* line = GGALine;
     GGALine += 7;
-    data->type = "GGA";
+    data->type = GGA;
     if (*GGALine != ',') {
         data->hour = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
         data->minute = charIntToInt(*GGALine++)*10 + charIntToInt(*GGALine++);
@@ -336,10 +317,6 @@ bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
         GGALine++;
         data->altitude = -1;
     }
-#ifndef __TEST__
-    if (line != NULL)
-        delete line;
-#endif
     return true;
 
 }
@@ -347,7 +324,7 @@ bool GPS::processGGALine(char* GGALine, gps_data_t* data) {
 bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
     char* line = GLLLine;
     GLLLine+=7;
-    data->type = "GLL";
+    data->type = GLL;
     if (*GLLLine != ',') {
         data->latitude = stringToDegreesIn1000000ths(GLLLine); GLLLine++;
     }
@@ -388,16 +365,12 @@ bool GPS::processGLLLine(char* GLLLine, gps_data_t* data) {
         data->seconds = 0;
     }
     data->fix = (*GLLLine=='A'); GLLLine++; GLLLine++;
-#ifndef __TEST__
-    if (line != NULL)
-        delete line;
-#endif
     return true;
 }
 
 bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
     char* line = RMCLine;
-    data->type = "RMC";
+    data->type = RMC;
     RMCLine += 7;
     if (*RMCLine != ',') {
         data->hour = charIntToInt(*RMCLine++)*10 + charIntToInt(*RMCLine++);
@@ -471,32 +444,21 @@ bool GPS::processRMCLine(char* RMCLine, gps_data_t* data) {
         data->magvariation = 0.0f;
     }
     data->altitude = -1;
-#ifndef __TEST__
-    if (line != NULL)
-        delete line;
-#endif
     return true;
 }
 
 void GPS::onSignalDoneTask(void* param) {
-    gps_data_t* gps_data = new gps_data_t;
-    bool correct = processLine((char*)GPS::state.lastLine, gps_data);
+    gps_data_t gps_data;
+    bool correct = processLine((char*)GPS::state.lastLine, &gps_data);
     if (!correct) {
         if (onReadDone != NULL)
             onReadDone(NULL, ERROR);
-        if (gps_data != NULL)
-            delete gps_data;
         return;
     }
     else  {
-        if (gps_data != NULL) {
-            GPS::lastData = *gps_data;
-        }
+        GPS::lastData = gps_data;
         if (onReadDone != NULL) {
-            onReadDone(gps_data, SUCCESS);
-        }
-        else if (gps_data != NULL){
-            delete gps_data;
+            onReadDone(&gps_data, SUCCESS);
         }
     }
     return;
