@@ -21,7 +21,7 @@ void ((*SensADXL377::_onStartDone)(error_t)) = NULL;
 void ((*SensADXL377::_onStopDone)(error_t)) = NULL;
 void ((*SensADXL377::_onReadDone)(sensor_data_t *, error_t)) = NULL;
 read_state_t SensADXL377::readState = {false, false, false};
-adxl377_data_t SensADXL377::_data = adxl377_data_t();
+accel_data_t SensADXL377::_data = accel_data_t();
 adxl377_calib_t SensADXL377::_calib = {0,0,0};
 SensADC* SensADXL377::_adcx = NULL; /* SensADC(
 		ADC_CHANNEL_1,
@@ -100,9 +100,9 @@ SensADXL377::SensADXL377(/*uint16_t inchx,
 				sampcon_id);*/
 
     /* sensor default data */
-	SensADXL377::_data._chanx = 0;
-	SensADXL377::_data._chany = 0;
-	SensADXL377::_data._chanz = 0;
+	SensADXL377::_data.x = 0;
+	SensADXL377::_data.y = 0;
+	SensADXL377::_data.z = 0;
 
     /* sensor default calibration of 0g */
 	SensADXL377::_calib._chanx = 2040;
@@ -115,7 +115,7 @@ SensADXL377::SensADXL377(/*uint16_t inchx,
 /* Private Methods ************************************************************/
 
 boolean SensADXL377::onSingleDataReadyChannelx(uint16_t data, error_t result) {
-	SensADXL377::_data._chanx =  (data* 4000 / 4096) - (SensADXL377::_calib._chanx * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
+	SensADXL377::_data.x =  (data* 4000 / 4096) - (SensADXL377::_calib._chanx * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
 	readState.x = true;
 	notifyIfNecessary();
 
@@ -123,7 +123,7 @@ boolean SensADXL377::onSingleDataReadyChannelx(uint16_t data, error_t result) {
 }
 
 boolean SensADXL377::onSingleDataReadyChannely(uint16_t data, error_t result) {
-	SensADXL377::_data._chany =  (data * 4000 / 4096) - (SensADXL377::_calib._chany * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
+	SensADXL377::_data.y =  (data * 4000 / 4096) - (SensADXL377::_calib._chany * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
 	readState.y = true;
 	notifyIfNecessary();
 
@@ -131,7 +131,7 @@ boolean SensADXL377::onSingleDataReadyChannely(uint16_t data, error_t result) {
 }
 
 boolean  SensADXL377::onSingleDataReadyChannelz(uint16_t data, error_t result) {
-	SensADXL377::_data._chanz = (data * 4000 / 4096) - (SensADXL377::_calib._chanz * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
+	SensADXL377::_data.z = (data * 4000 / 4096) - (SensADXL377::_calib._chanz * 4000 / 4096);  //2^12 = 4096. Result in 0.1g
 	readState.z = true;
 	notifyIfNecessary();
 
@@ -140,7 +140,7 @@ boolean  SensADXL377::onSingleDataReadyChannelz(uint16_t data, error_t result) {
 
 void SensADXL377::notifyIfNecessary() {
 	if (readState.x && readState.y && readState.z && _onReadDone) {
-		adxl377_data_t* ret = new adxl377_data_t;
+		accel_data_t* ret = new accel_data_t;
 		*ret = SensADXL377::_data;
 		_onReadDone(ret, SUCCESS);
 	}
